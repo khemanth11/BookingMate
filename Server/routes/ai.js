@@ -1,16 +1,28 @@
-const express = require('express');
+import express from 'express';
 const router = express.Router();
-const { OpenAI } = require('openai');
+import { OpenAI } from 'openai';
+import Booking from '../models/Booking.js';
+import Listing from '../models/Listing.js';
 
-// Note: Ensure OPENAI_API_KEY is defined in Server/.env
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-});
+// Lazy initialization
+let _groq = null;
+const getGroqClient = () => {
+    if (!_groq && process.env.GROQ_API_KEY) {
+        _groq = new OpenAI({
+            apiKey: process.env.GROQ_API_KEY,
+            baseURL: "https://api.groq.com/openai/v1",
+        });
+    }
+    return _groq;
+};
 
 // @route   POST /api/ai/optimize-listing
 // @desc    Takes raw description and optimizes it into a professional sales pitch
-// @access  Private (but for now we'll keep it simple, maybe add auth middleware later if needed)
 router.post('/optimize-listing', async (req, res) => {
+    const groq = getGroqClient();
+    if (!groq) {
+        return res.status(503).json({ error: 'Groq Service unconfigured. Please add GROQ_API_KEY to .env' });
+    }
     try {
         const { rawDescription } = req.body;
 
@@ -18,8 +30,8 @@ router.post('/optimize-listing', async (req, res) => {
             return res.status(400).json({ msg: 'Please provide a raw description.' });
         }
 
-        const response = await openai.chat.completions.create({
-            model: "gpt-4o-mini",
+        const response = await groq.chat.completions.create({
+            model: "llama-3.3-70b-versatile",
             messages: [
                 { 
                     role: "system", 
@@ -34,9 +46,77 @@ router.post('/optimize-listing', async (req, res) => {
 
         res.json({ optimizedText: response.choices[0].message.content });
     } catch (err) {
-        console.error('AI Error:', err.message);
+        console.error('Groq AI Error:', err.message);
         res.status(500).json({ error: 'Server Error optimizing text' });
     }
 });
 
-module.exports = router;
+// @route   POST /api/ai/verify-job-completion
+// @desc    Verifies job completion using Groq-Vision AI (Llama 3.2 Vision)
+router.post('/verify-job-completion', async (req, res) => {
+    const groq = getGroqClient();
+    if (!groq) {
+        return res.status(503).json({ error: 'Groq Service unconfigured' });
+    }
+
+    try {
+        const { image, bookingId } = req.body; // image as base64
+
+        if (!image || !bookingId) {
+            return res.status(400).json({ msg: 'Image and bookingId are required' });
+        }
+
+        const booking = await Booking.findById(bookingId).populate('listingId');
+        if (!booking) {
+            return res.status(404).json({ msg: 'Booking not found' });
+        }
+
+        const listing = booking.listingId;
+        const prompt = `You are a trust and safety agent. 
+        Verify if this photo represents a completed job for the following service:
+        Service Name: ${listing.name}
+        Description: ${listing.description}
+        
+        Answer only with "YES" or "NO" and a very short reasoning.`;
+
+        const response = await groq.chat.completions.create({
+            model: "llama-3.2-90b-vision-preview",
+            messages: [
+                {
+                    role: "user",
+                    content: [
+                        { type: "text", text: prompt },
+                        {
+                            type: "image_url",
+                            image_url: {
+                                "url": `data:image/jpeg;base64,${image}`,
+                            },
+                        },
+                    ],
+                },
+            ],
+        });
+
+        const aiResult = response.choices[0].message.content;
+        const reflectsSuccess = aiResult.toUpperCase().includes("YES");
+
+        if (reflectsSuccess) {
+            booking.status = 'completed';
+            booking.isAiVerified = true;
+            booking.verificationPhoto = 'Image stored locally (Base64)';
+            await booking.save();
+        }
+
+        res.json({ 
+            verified: reflectsSuccess, 
+            reasoning: aiResult,
+            status: booking.status
+        });
+
+    } catch (err) {
+        console.error('Groq Vision Error:', err.message);
+        res.status(500).json({ error: 'Server Error during vision verification' });
+    }
+});
+
+export default router;

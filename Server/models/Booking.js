@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const bookingSchema = new mongoose.Schema({
     userId: {
@@ -37,10 +37,18 @@ const bookingSchema = new mongoose.Schema({
         type: String,
         default: ''
     },
+    verificationPhoto: {
+        type: String, // Store Base64 or URL
+        default: null
+    },
+    isAiVerified: {
+        type: Boolean,
+        default: false
+    },
     createdAt: {
         type: Date,
         default: Date.now
     }
 });
 
-module.exports = mongoose.model('Booking', bookingSchema);
+export default mongoose.model('Booking', bookingSchema);

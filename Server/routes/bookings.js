@@ -1,6 +1,6 @@
-const express = require('express');
-const Booking = require('../models/Booking');
-const jwt = require('jsonwebtoken');
+import express from 'express';
+import Booking from '../models/Booking.js';
+import jwt from 'jsonwebtoken';
 
 const router = express.Router();
 
@@ -120,4 +120,4 @@ router.put('/:id/status', auth, async (req, res) => {
     }
 });
 
-module.exports = router;
+export default router;

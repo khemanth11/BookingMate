@@ -11,6 +11,8 @@ import HomeScreen from './screens/home/HomeScreen';
 import CategoryListingScreen from './screens/home/CategoryListingScreen';
 import ListingDetailScreen from './screens/home/ListingDetailScreen';
 import BookingScreen from './screens/home/BookingScreen';
+import MapScreen from './screens/home/MapScreen';
+import ConsumerBookingsScreen from './screens/consumer/ConsumerBookingsScreen';
 import ChatScreen from './screens/shared/ChatScreen';
 import SearchScreen from './screens/home/SearchScreen';
 import ProviderDashboardScreen from './screens/provider/ProviderDashboardScreen';

@@ -1,7 +1,7 @@
-const express = require('express');
-const Listing = require('../models/Listing');
-const jwt = require('jsonwebtoken');
-const { syncListingToPinecone, deleteListingFromPinecone, semanticSearch } = require('../utils/pinecone');
+import express from 'express';
+import Listing from '../models/Listing.js';
+import jwt from 'jsonwebtoken';
+import { syncListingToPinecone, deleteListingFromPinecone, semanticSearch } from '../utils/pinecone.js';
 
 const router = express.Router();
 
@@ -44,7 +44,6 @@ router.post('/semantic-search', async (req, res) => {
         if (matchingIds.length === 0) return res.json([]);
 
         // Fetch listings from Mongo that match the IDs from Pinecone
-        // We use $in and also preserve the order if possible, but simplified for now:
         const listings = await Listing.find({ _id: { $in: matchingIds } }).populate('providerId', 'name phone');
         
         // Re-order listings based on Pinecone score order
@@ -56,6 +55,26 @@ router.post('/semantic-search', async (req, res) => {
     } catch (err) {
         console.error('Semantic Search Error:', err.message);
         res.status(500).send('Server Error');
+    }
+});
+
+// @route   GET /api/listings/sync-all
+// @desc    Utility to sync all existing Mongo listings to Pinecone index
+// @access  Public (Development Utility)
+router.get('/sync-all', async (req, res) => {
+    try {
+        const listings = await Listing.find();
+        let syncedCount = 0;
+        
+        for (const listing of listings) {
+            await syncListingToPinecone(listing);
+            syncedCount++;
+        }
+        
+        res.json({ msg: `Successfully processed ${syncedCount} listings for synchronization.` });
+    } catch (err) {
+        console.error('Batch Sync Error:', err.message);
+        res.status(500).send('Server Error during batch sync');
     }
 });
 
@@ -102,7 +121,7 @@ router.post('/', auth, async (req, res) => {
 
         const listing = await newListing.save();
         
-        // Background sync to Pinecone (don't await for faster response if you prefer, but here we do to be safe or just catch)
+        // Background sync to Pinecone
         syncListingToPinecone(listing).catch(err => console.error('Initial sync error:', err));
 
         res.json(listing);
@@ -173,4 +192,4 @@ router.delete('/:id', auth, async (req, res) => {
     }
 });
 
-module.exports = router;
+export default router;
