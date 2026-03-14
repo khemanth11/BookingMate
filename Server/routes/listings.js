@@ -192,4 +192,39 @@ router.delete('/:id', auth, async (req, res) => {
     }
 });
 
+// @route   GET /api/listings/:id/blocked-dates
+// @desc    Get blocked dates for a listing (Public)
+router.get('/:id/blocked-dates', async (req, res) => {
+    try {
+        const listing = await Listing.findById(req.params.id).select('blockedDates');
+        if (!listing) return res.status(404).json({ message: 'Listing not found' });
+        res.json(listing.blockedDates || []);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
+// @route   PUT /api/listings/:id/blocked-dates
+// @desc    Provider updates blocked dates for their listing
+router.put('/:id/blocked-dates', auth, async (req, res) => {
+    try {
+        const listing = await Listing.findById(req.params.id);
+        if (!listing) return res.status(404).json({ message: 'Listing not found' });
+
+        if (listing.providerId.toString() !== req.user.id) {
+            return res.status(401).json({ message: 'Not authorized' });
+        }
+
+        const { blockedDates } = req.body; // Array of "YYYY-MM-DD" strings
+        listing.blockedDates = blockedDates || [];
+        await listing.save();
+
+        res.json({ message: 'Blocked dates updated', blockedDates: listing.blockedDates });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
 export default router;

@@ -48,6 +48,17 @@ const listingSchema = new mongoose.Schema({
         startTime: { type: String }, // "09:00"
         endTime: { type: String }    // "17:00"
     }],
+    blockedDates: [{
+        type: String  // "YYYY-MM-DD" format
+    }],
+    averageRating: {
+        type: Number,
+        default: 0
+    },
+    totalReviews: {
+        type: Number,
+        default: 0
+    },
     createdAt: {
         type: Date,
         default: Date.now

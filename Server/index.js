@@ -12,6 +12,7 @@ import listingRoutes from './routes/listings.js';
 import bookingRoutes from './routes/bookings.js';
 import messageRoutes from './routes/messages.js';
 import aiRoutes from './routes/ai.js';
+import reviewRoutes from './routes/reviews.js';
 
 // Models for Socket.io
 import Message from './models/Message.js';
@@ -47,6 +48,7 @@ app.use('/api/listings', listingRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/reviews', reviewRoutes);
 
 // Socket.io Logic
 io.on('connection', (socket) => {

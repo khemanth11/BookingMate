@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
   ScrollView, StatusBar, SafeAreaView, Alert, ActivityIndicator
@@ -12,6 +12,25 @@ const TIME_SLOTS = ['8:00 AM', '10:00 AM', '12:00 PM', '2:00 PM', '4:00 PM', '6:
 export default function ListingDetailScreen({ route, navigation }) {
   const { listing, category } = route.params;
   const { user } = useAuth();
+  const [reviews, setReviews] = useState([]);
+
+  useEffect(() => {
+    const fetchReviews = async () => {
+      try {
+        const listingId = listing._id || listing.id;
+        const res = await axios.get(`http://10.113.112.195:5000/api/reviews/listing/${listingId}`);
+        setReviews(res.data || []);
+      } catch (err) {
+        console.error('Error fetching reviews:', err);
+      }
+    };
+    fetchReviews();
+  }, []);
+
+  const renderStars = (rating) => {
+    const filled = Math.round(rating);
+    return '★'.repeat(filled) + '☆'.repeat(5 - filled);
+  };
 
   const handleBookNow = () => {
     if (!user || user.role !== 'consumer') {
@@ -50,6 +69,14 @@ export default function ListingDetailScreen({ route, navigation }) {
               {listing.available ? 'Available Now' : 'Currently Busy'}
             </Text>
           </View>
+
+          {/* Star Rating */}
+          <View style={styles.ratingRow}>
+            <Text style={styles.ratingStars}>{renderStars(listing.averageRating || 0)}</Text>
+            <Text style={styles.ratingText}>
+              {listing.averageRating ? `${listing.averageRating.toFixed(1)}` : 'New'} ({listing.totalReviews || 0} reviews)
+            </Text>
+          </View>
         </View>
 
         {/* Description (If any exists on the model, hardcoded placeholder for now since schema didn't have heavy desc use) */}
@@ -77,6 +104,25 @@ export default function ListingDetailScreen({ route, navigation }) {
               : 'Proceed to Schedule'}
           </Text>
         </TouchableOpacity>
+
+        {/* Recent Reviews */}
+        {reviews.length > 0 && (
+          <View style={styles.sectionContainer}>
+            <Text style={styles.sectionTitle}>Recent Reviews</Text>
+            {reviews.slice(0, 5).map((review, idx) => (
+              <View key={review._id || idx} style={styles.reviewCard}>
+                <View style={styles.reviewHeader}>
+                  <Text style={styles.reviewerName}>{review.reviewerId?.name || 'Anonymous'}</Text>
+                  <Text style={styles.reviewStars}>{renderStars(review.rating)}</Text>
+                </View>
+                {review.reviewText ? (
+                  <Text style={styles.reviewText}>{review.reviewText}</Text>
+                ) : null}
+              </View>
+            ))}
+          </View>
+        )}
+
       </ScrollView>
     </SafeAreaView>
   );
@@ -168,6 +214,21 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     textTransform: 'uppercase',
   },
+  ratingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 16,
+  },
+  ratingStars: {
+    color: '#f59e0b',
+    fontSize: 20,
+    marginRight: 8,
+  },
+  ratingText: {
+    color: '#6b7280',
+    fontSize: 14,
+    fontWeight: '600',
+  },
   sectionContainer: {
     marginBottom: 28,
   },
@@ -227,5 +288,33 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 16,
     letterSpacing: 0.5,
+  },
+  reviewCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  reviewHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  reviewerName: {
+    color: '#111827',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  reviewStars: {
+    color: '#f59e0b',
+    fontSize: 16,
+  },
+  reviewText: {
+    color: '#6b7280',
+    fontSize: 14,
+    lineHeight: 20,
   },
 });

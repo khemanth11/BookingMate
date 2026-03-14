@@ -7,7 +7,7 @@ import { useAuth } from '../../context/AuthContext';
 
 
 const CATEGORIES = [
-    { id: '1', name: 'Farm Animals', icon: '🐄', desc: 'Buffalo, Cow, Goat', color: '#1a472a' },
+    { id: '1', name: 'Farm Animals', icon: '🐄', desc: 'Buffalo, Cow, Goat', color: '#764040ff' },
     { id: '2', name: 'Medical', icon: '💊', desc: 'Medicine delivery nearby', color: '#1a1a5e' },
     { id: '3', name: 'Farm Equipment', icon: '🚜', desc: 'Tractor, Tools', color: '#5e3a1a' },
     { id: '4', name: 'Farm Labor', icon: '👨‍🌾', desc: 'Daily workers', color: '#4a1a5e' },
@@ -44,7 +44,7 @@ export default function HomeScreen({ navigation }) {
                 </View>
 
                 {/* Search / Action Bar */}
-                <TouchableOpacity 
+                <TouchableOpacity
                     style={styles.actionContainer}
                     onPress={() => navigation.navigate('SearchScreen')}
                 >
@@ -80,7 +80,7 @@ export default function HomeScreen({ navigation }) {
                     {CATEGORIES.map((cat) => (
                         <TouchableOpacity
                             key={cat.id}
-                            style={[styles.card, { borderTopColor: cat.color }]}
+                            style={styles.card}
                             onPress={() => navigation.navigate('CategoryListing', { category: cat })}
                         >
                             <View style={[styles.iconContainer]}>
@@ -110,7 +110,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginTop: 40, // Added margin as requested by user
+        marginTop: 10, // Added margin as requested by user
         marginBottom: 24,
     },
     greeting: {
@@ -120,7 +120,7 @@ const styles = StyleSheet.create({
         letterSpacing: 0.5,
     },
     subGreeting: {
-        fontSize: 14,
+        fontSize: 19,
         color: '#6b7280',
         fontWeight: '600',
         marginBottom: 4,
@@ -210,18 +210,14 @@ const styles = StyleSheet.create({
         backgroundColor: '#ffffff',
         borderRadius: 20,
         padding: 18,
-        borderTopWidth: 4,
-        borderWidth: 1,
-        borderColor: '#e5e7eb',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.08,
+        shadowRadius: 4,
+        elevation: 2,
     },
     iconContainer: {
-        width: 48,
-        height: 48,
-        borderRadius: 14,
-        justifyContent: 'center',
-        alignItems: 'center',
         marginBottom: 14,
-        backgroundColor: '#f3f4f6', // Replaced dynamic "color shadow" with solid clean box
     },
     cardIcon: {
         fontSize: 24,

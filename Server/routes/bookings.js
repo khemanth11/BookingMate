@@ -1,5 +1,6 @@
 import express from 'express';
 import Booking from '../models/Booking.js';
+import Listing from '../models/Listing.js';
 import jwt from 'jsonwebtoken';
 
 const router = express.Router();
@@ -31,6 +32,12 @@ router.post('/', auth, async (req, res) => {
 
         if (!providerId || !listingId || !date || !startTime || !endTime) {
             return res.status(400).json({ message: 'Missing required scheduling fields' });
+        }
+
+        // Check if the date is blocked by the provider
+        const listing = await Listing.findById(listingId);
+        if (listing && listing.blockedDates && listing.blockedDates.includes(date)) {
+            return res.status(400).json({ message: 'This date is unavailable. The provider has blocked this date.' });
         }
 
         const newBooking = new Booking({

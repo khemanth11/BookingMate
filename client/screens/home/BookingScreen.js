@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     View, Text, StyleSheet, TouchableOpacity,
     SafeAreaView, StatusBar, Alert, ActivityIndicator, ScrollView
@@ -24,9 +24,24 @@ export default function BookingScreen({ route, navigation }) {
     const [selectedDate, setSelectedDate] = useState('');
     const [selectedSlot, setSelectedSlot] = useState(null);
     const [isBooking, setIsBooking] = useState(false);
+    const [blockedDates, setBlockedDates] = useState([]);
 
     // Get today's date in YYYY-MM-DD format for minDate
     const today = new Date().toISOString().split('T')[0];
+
+    // Fetch blocked dates on mount
+    useEffect(() => {
+        const fetchBlockedDates = async () => {
+            try {
+                const listingId = listing._id || listing.id;
+                const res = await axios.get(`http://10.113.112.195:5000/api/listings/${listingId}/blocked-dates`);
+                setBlockedDates(res.data || []);
+            } catch (err) {
+                console.error('Error fetching blocked dates:', err);
+            }
+        };
+        fetchBlockedDates();
+    }, []);
 
     const handleConfirmBooking = async () => {
         if (!selectedDate || !selectedSlot) {
@@ -89,11 +104,18 @@ export default function BookingScreen({ route, navigation }) {
                     <Calendar
                         minDate={today}
                         onDayPress={day => {
+                            if (blockedDates.includes(day.dateString)) return; // Can't select blocked dates
                             setSelectedDate(day.dateString);
-                            setSelectedSlot(null); // Reset slot when date changes
+                            setSelectedSlot(null);
                         }}
                         markedDates={{
-                            [selectedDate]: { selected: true, disableTouchEvent: true, selectedDotColor: '#121221' }
+                            ...blockedDates.reduce((acc, date) => {
+                                acc[date] = { disabled: true, disableTouchEvent: true, selectedColor: '#ef4444', selected: true, selectedTextColor: '#ffffff' };
+                                return acc;
+                            }, {}),
+                            ...(selectedDate && !blockedDates.includes(selectedDate) ? {
+                                [selectedDate]: { selected: true, disableTouchEvent: true, selectedDotColor: '#121221' }
+                            } : {})
                         }}
                         theme={{
                             backgroundColor: '#ffffff',

@@ -4,10 +4,14 @@ import {
     Switch, SafeAreaView, StatusBar, ScrollView,
     KeyboardAvoidingView, Platform, Alert, ActivityIndicator
 } from 'react-native';
+import { Calendar } from 'react-native-calendars';
 import { useProvider } from './ProviderContext';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import * as Location from 'expo-location';
 import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const API_URL = 'http://10.113.112.195:5000/api/listings';
 
 const CATEGORIES = [
     'Farm Animals', 'Medical', 'Farm Equipment',
@@ -29,6 +33,10 @@ export default function EditListingScreen() {
     const [description, setDescription] = useState('');
     const [isSaving, setIsSaving] = useState(false);
     const [isOptimizing, setIsOptimizing] = useState(false);
+    const [blockedDates, setBlockedDates] = useState([]);
+    const [isSavingDates, setIsSavingDates] = useState(false);
+
+    const today = new Date().toISOString().split('T')[0];
 
     const handleOptimizeAI = async () => {
         if (!description.trim()) {
@@ -57,7 +65,44 @@ export default function EditListingScreen() {
             setAvailable(listing.available ?? true);
             setDescription(listing.description || '');
         }
+        // Fetch blocked dates
+        fetchBlockedDates();
     }, [listing.id]);
+
+    const fetchBlockedDates = async () => {
+        try {
+            const res = await axios.get(`${API_URL}/${listingId}/blocked-dates`);
+            setBlockedDates(res.data || []);
+        } catch (err) {
+            console.error('Error fetching blocked dates:', err);
+        }
+    };
+
+    const toggleBlockedDate = (dateString) => {
+        setBlockedDates(prev => {
+            if (prev.includes(dateString)) {
+                return prev.filter(d => d !== dateString);
+            } else {
+                return [...prev, dateString];
+            }
+        });
+    };
+
+    const saveBlockedDates = async () => {
+        setIsSavingDates(true);
+        try {
+            const token = await AsyncStorage.getItem('token');
+            await axios.put(`${API_URL}/${listingId}/blocked-dates`, { blockedDates }, {
+                headers: { 'x-auth-token': token }
+            });
+            Alert.alert('Saved', 'Blocked dates updated successfully!');
+        } catch (err) {
+            console.error('Error saving blocked dates:', err);
+            Alert.alert('Error', 'Failed to save blocked dates.');
+        } finally {
+            setIsSavingDates(false);
+        }
+    };
 
     const handleSave = async () => {
         if (!name.trim() || !category.trim()) {
@@ -173,6 +218,50 @@ export default function EditListingScreen() {
                             <Text style={styles.buttonText}>✅ Save Changes</Text>
                         )}
                     </TouchableOpacity>
+
+                    {/* Blocked Dates Calendar */}
+                    <Text style={[styles.label, { marginTop: 24, fontSize: 18 }]}>📅 Manage Availability</Text>
+                    <Text style={styles.hintText}>Tap dates to block/unblock them. Blocked dates appear in red.</Text>
+                    
+                    <View style={styles.calendarContainer}>
+                        <Calendar
+                            minDate={today}
+                            onDayPress={day => toggleBlockedDate(day.dateString)}
+                            markedDates={
+                                blockedDates.reduce((acc, date) => {
+                                    acc[date] = { selected: true, selectedColor: '#ef4444', selectedTextColor: '#ffffff' };
+                                    return acc;
+                                }, {})
+                            }
+                            theme={{
+                                backgroundColor: '#ffffff',
+                                calendarBackground: '#ffffff',
+                                textSectionTitleColor: '#6b7280',
+                                selectedDayBackgroundColor: '#ef4444',
+                                selectedDayTextColor: '#ffffff',
+                                todayTextColor: '#111827',
+                                dayTextColor: '#111827',
+                                textDisabledColor: '#9ca3af',
+                                arrowColor: '#111827',
+                                monthTextColor: '#111827',
+                                textDayFontWeight: '500',
+                                textMonthFontWeight: '800',
+                                textDayHeaderFontWeight: '600',
+                                textDayFontSize: 16,
+                                textMonthFontSize: 18,
+                                textDayHeaderFontSize: 13
+                            }}
+                        />
+                    </View>
+
+                    <TouchableOpacity style={[styles.saveDatesBtn, isSavingDates && { opacity: 0.7 }]} onPress={saveBlockedDates} disabled={isSavingDates}>
+                        {isSavingDates ? (
+                            <ActivityIndicator color="#ffffff" />
+                        ) : (
+                            <Text style={styles.saveDatesBtnText}>💾 Save Blocked Dates ({blockedDates.length})</Text>
+                        )}
+                    </TouchableOpacity>
+
                 </ScrollView>
             </KeyboardAvoidingView>
         </SafeAreaView>
@@ -234,5 +323,32 @@ const styles = StyleSheet.create({
         color: '#111827',
         fontSize: 12,
         fontWeight: 'bold',
+    },
+    hintText: {
+        color: '#6b7280',
+        fontSize: 13,
+        marginBottom: 12,
+        fontWeight: '500',
+    },
+    calendarContainer: {
+        borderRadius: 16,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: '#e5e7eb',
+        marginBottom: 16,
+        backgroundColor: '#ffffff',
+    },
+    saveDatesBtn: {
+        backgroundColor: '#ef4444',
+        borderRadius: 16,
+        padding: 16,
+        alignItems: 'center',
+        marginTop: 8,
+        marginBottom: 30,
+    },
+    saveDatesBtnText: {
+        color: '#ffffff',
+        fontWeight: 'bold',
+        fontSize: 16,
     }
 });
