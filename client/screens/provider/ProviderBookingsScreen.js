@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
     View, Text, StyleSheet, TouchableOpacity,
-    FlatList, SafeAreaView, StatusBar, Alert, ActivityIndicator
+    FlatList, SafeAreaView, StatusBar, Alert, ActivityIndicator,
+    Modal, Image
 } from 'react-native';
+import { CameraView, useCameraPermissions } from 'expo-camera';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
@@ -15,6 +17,11 @@ export default function ProviderBookingsScreen() {
     const [isLoading, setIsLoading] = useState(true);
     const navigation = useNavigation();
     const { user } = useAuth();
+    const [isCameraVisible, setIsCameraVisible] = useState(false);
+    const [permission, requestPermission] = useCameraPermissions();
+    const [cameraRef, setCameraRef] = useState(null);
+    const [verifyingBookingId, setVerifyingBookingId] = useState(null);
+    const [isVerifying, setIsVerifying] = useState(false);
 
     const fetchBookings = useCallback(async () => {
         try {
@@ -52,6 +59,53 @@ export default function ProviderBookingsScreen() {
         } catch (error) {
             console.error(`Error updating to ${newStatus}:`, error);
             Alert.alert('Error', 'Failed to update booking status.');
+        }
+    };
+
+    const handleVerifyAndComplete = async (bookingId) => {
+        if (!permission || !permission.granted) {
+            const res = await requestPermission();
+            if (!res.granted) {
+                Alert.alert('Permission Rejected', 'Camera access is required for AI verification.');
+                return;
+            }
+        }
+        setVerifyingBookingId(bookingId);
+        setIsCameraVisible(true);
+    };
+
+    const takePictureAndVerify = async () => {
+        if (!cameraRef) return;
+
+        try {
+            setIsVerifying(true);
+            const photo = await cameraRef.takePictureAsync({
+                quality: 0.2,
+                base64: true,
+                exif: false,
+            });
+
+            const token = await AsyncStorage.getItem('token');
+            const res = await axios.post(`http://10.113.112.195:5000/api/ai/verify-job-completion`, {
+                image: photo.base64,
+                bookingId: verifyingBookingId
+            }, {
+                headers: { 'x-auth-token': token }
+            });
+
+            setIsVerifying(false);
+            setIsCameraVisible(false);
+
+            if (res.data.verified) {
+                Alert.alert('✅ AI Verified', 'The job completion was verified successfully!');
+                fetchBookings(); // Refresh list
+            } else {
+                Alert.alert('❌ Verification Failed', res.data.reasoning || 'The photo does not appear to show a completed job.');
+            }
+        } catch (error) {
+            console.error('Verification error:', error);
+            setIsVerifying(false);
+            Alert.alert('Error', 'An error occurred during verification.');
         }
     };
 
@@ -102,9 +156,9 @@ export default function ProviderBookingsScreen() {
                     <View style={[styles.actions, { marginTop: 16 }]}>
                         <TouchableOpacity
                             style={styles.completeBtn}
-                            onPress={() => updateStatus(item._id, 'completed')}
+                            onPress={() => handleVerifyAndComplete(item._id)}
                         >
-                            <Text style={[styles.btnText, { color: '#1D4ED8' }]}>★ Complete</Text>
+                            <Text style={[styles.btnText, { color: '#1D4ED8' }]}>📸 Verify & Complete</Text>
                         </TouchableOpacity>
 
                         <TouchableOpacity
@@ -157,6 +211,38 @@ export default function ProviderBookingsScreen() {
                     contentContainerStyle={{ paddingBottom: 100 }}
                 />
             )}
+
+            {/* Camera Modal */}
+            <Modal visible={isCameraVisible} animationType="slide">
+                <View style={styles.cameraContainer}>
+                    <CameraView
+                        style={styles.camera}
+                        ref={(ref) => setCameraRef(ref)}
+                    >
+                        <View style={styles.cameraOverlay}>
+                            <Text style={styles.cameraTip}>Center the completed work in frame</Text>
+                            {isVerifying ? (
+                                <ActivityIndicator size="large" color="#ffffff" />
+                            ) : (
+                                <View style={styles.cameraActions}>
+                                    <TouchableOpacity 
+                                        style={styles.captureBtn} 
+                                        onPress={takePictureAndVerify}
+                                    >
+                                        <View style={styles.captureInner} />
+                                    </TouchableOpacity>
+                                    <TouchableOpacity 
+                                        style={styles.cancelCameraBtn} 
+                                        onPress={() => setIsCameraVisible(false)}
+                                    >
+                                        <Text style={styles.cancelCameraText}>Cancel</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            )}
+                        </View>
+                    </CameraView>
+                </View>
+            </Modal>
         </SafeAreaView>
     );
 }
@@ -228,4 +314,56 @@ const styles = StyleSheet.create({
     emptyIcon: { fontSize: 50, marginBottom: 16 },
     emptyText: { color: '#111827', fontSize: 22, fontWeight: '800' },
     emptyHint: { color: '#6b7280', fontSize: 15, marginTop: 10, textAlign: 'center', lineHeight: 22 },
+    
+    // Camera Styles
+    cameraContainer: { flex: 1, backgroundColor: '#000' },
+    camera: { flex: 1 },
+    cameraOverlay: {
+        flex: 1,
+        backgroundColor: 'transparent',
+        justifyContent: 'flex-end',
+        alignItems: 'center',
+        paddingBottom: 40
+    },
+    cameraTip: {
+        color: '#ffffff',
+        fontSize: 14,
+        fontWeight: 'bold',
+        marginBottom: 20,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 20
+    },
+    cameraActions: {
+        width: '100%',
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center'
+    },
+    captureBtn: {
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        borderWidth: 4,
+        borderColor: '#ffffff',
+        justifyContent: 'center',
+        alignItems: 'center'
+    },
+    captureInner: {
+        width: 64,
+        height: 64,
+        borderRadius: 32,
+        backgroundColor: '#ffffff'
+    },
+    cancelCameraBtn: {
+        position: 'absolute',
+        right: 40,
+        padding: 10
+    },
+    cancelCameraText: {
+        color: '#ffffff',
+        fontSize: 16,
+        fontWeight: 'bold'
+    }
 });

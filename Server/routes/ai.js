@@ -72,15 +72,22 @@ router.post('/verify-job-completion', async (req, res) => {
         }
 
         const listing = booking.listingId;
-        const prompt = `You are a trust and safety agent. 
-        Verify if this photo represents a completed job for the following service:
-        Service Name: ${listing.name}
-        Description: ${listing.description}
-        
-        Answer only with "YES" or "NO" and a very short reasoning.`;
+        const prompt = `You are a practical job verification assistant. Your job is to confirm that a service provider has completed their work.
+
+Service Category: ${listing.category || 'General'}
+Service Name: ${listing.name}
+Service Description: ${listing.description || 'No description provided'}
+
+Look at this photo and determine: Does this photo show a genuine attempt at completing work related to this type of service? Be LENIENT and practical. 
+
+- If the photo shows ANY real-world work scene, tools, products, or results that could REASONABLY relate to the service category, answer YES.
+- Only answer NO if the photo is clearly unrelated (e.g., a selfie for a plumbing job, or a blank wall for a cleaning job).
+- Do NOT be overly strict about the listing name — focus on the service CATEGORY and DESCRIPTION.
+
+Answer with "YES" or "NO" followed by a brief one-line reason.`;
 
         const response = await groq.chat.completions.create({
-            model: "llama-3.2-90b-vision-preview",
+            model: "meta-llama/llama-4-scout-17b-16e-instruct",
             messages: [
                 {
                     role: "user",
@@ -115,7 +122,8 @@ router.post('/verify-job-completion', async (req, res) => {
 
     } catch (err) {
         console.error('Groq Vision Error:', err.message);
-        res.status(500).json({ error: 'Server Error during vision verification' });
+        console.error('Full Error:', err.response?.data || err);
+        res.status(500).json({ error: err.message || 'Server Error during vision verification' });
     }
 });
 

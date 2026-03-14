@@ -58,6 +58,12 @@ export default function ConsumerBookingsScreen() {
                     </View>
                 </View>
 
+                {item.isAiVerified && (
+                    <View style={styles.verifiedBadge}>
+                        <Text style={styles.verifiedText}>✅ AI Verified Selection</Text>
+                    </View>
+                )}
+
                 <Text style={styles.cardInfo}>🧑‍🔧 Provider: {item.providerId?.name || 'Local Expert'}</Text>
                 <Text style={styles.cardInfo}>📅 Date: {item.date}</Text>
                 <Text style={styles.cardInfo}>⏰ Time: {item.startTime} - {item.endTime}</Text>
@@ -157,6 +163,21 @@ const styles = StyleSheet.create({
     badge: { borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6 },
     badgeText: { color: '#ffffff', fontSize: 11, fontWeight: 'bold', letterSpacing: 0.5 },
     cardInfo: { color: '#6b7280', fontSize: 14, marginBottom: 8, fontWeight: '500' },
+    verifiedBadge: {
+        backgroundColor: '#ecfdf5',
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 8,
+        alignSelf: 'flex-start',
+        marginBottom: 12,
+        borderWidth: 1,
+        borderColor: '#10b981',
+    },
+    verifiedText: {
+        color: '#059669',
+        fontSize: 12,
+        fontWeight: 'bold',
+    },
     statusMsg: {
         marginTop: 12,
         paddingTop: 12,
