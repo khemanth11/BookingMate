@@ -33,13 +33,13 @@ router.post('/optimize-listing', async (req, res) => {
         const response = await groq.chat.completions.create({
             model: "llama-3.3-70b-versatile",
             messages: [
-                { 
-                    role: "system", 
-                    content: "You are an expert marketing copywriter for service providers. Polish the following raw description into a professional, trustworthy, and bulleted service listing. Keep it concise but persuasive." 
+                {
+                    role: "system",
+                    content: "You are an expert marketing copywriter for service providers. Polish the following raw description into a professional, trustworthy, and bulleted service listing. Keep it concise but persuasive."
                 },
-                { 
-                    role: "user", 
-                    content: rawDescription 
+                {
+                    role: "user",
+                    content: rawDescription
                 }
             ]
         });
@@ -114,8 +114,8 @@ Answer with "YES" or "NO" followed by a brief one-line reason.`;
             await booking.save();
         }
 
-        res.json({ 
-            verified: reflectsSuccess, 
+        res.json({
+            verified: reflectsSuccess,
             reasoning: aiResult,
             status: booking.status
         });

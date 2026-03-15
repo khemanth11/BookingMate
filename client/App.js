@@ -19,6 +19,7 @@ import ProviderDashboardScreen from './screens/provider/ProviderDashboardScreen'
 import ProviderBookingsScreen from './screens/provider/ProviderBookingsScreen';
 import AddListingScreen from './screens/provider/AddListingScreen';
 import EditListingScreen from './screens/provider/EditListingScreen';
+import ProfileScreen from './screens/home/ProfileScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -44,6 +45,7 @@ export default function App() {
                         <Stack.Screen name="MapScreen" component={MapScreen} />
                         <Stack.Screen name="ChatScreen" component={ChatScreen} />
                         <Stack.Screen name="SearchScreen" component={SearchScreen} />
+                        <Stack.Screen name="ProfileScreen" component={ProfileScreen} />
 
                         {/* Provider Screens */}
                         <Stack.Screen name="ProviderDashboard" component={ProviderDashboardScreen} />

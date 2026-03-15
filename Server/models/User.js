@@ -27,6 +27,19 @@ const userSchema = new mongoose.Schema({
         enum: ['consumer', 'provider'],
         default: 'consumer'
     },
+    avatar: {
+        type: String,
+        default: ''
+    },
+    bio: {
+        type: String,
+        trim: true,
+        default: ''
+    },
+    completedJobsCount: {
+        type: Number,
+        default: 0
+    },
     createdAt: {
         type: Date,
         default: Date.now

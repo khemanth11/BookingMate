@@ -61,7 +61,14 @@ export default function ListingDetailScreen({ route, navigation }) {
             <Text style={styles.bigIcon}>{category.icon}</Text>
           </View>
           <Text style={styles.itemName}>{listing.name}</Text>
-          <Text style={styles.itemLocation}>👤 Provider: {listing.providerId?.name || 'Local'}</Text>
+          <TouchableOpacity 
+            onPress={() => navigation.navigate('ProfileScreen', { 
+              providerId: listing.providerId?._id || listing.providerId,
+              providerName: listing.providerId?.name || 'Local Expert'
+            })}
+          >
+            <Text style={styles.itemLocation}>👤 Provider: {listing.providerId?.name || 'Local Expert'} (View Profile)</Text>
+          </TouchableOpacity>
           <Text style={styles.itemRating}>₹{listing.price}</Text>
 
           <View style={[styles.badge, { backgroundColor: listing.available ? '#a4c3b2' : '#e5989b' }]}>
