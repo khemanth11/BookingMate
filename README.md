@@ -161,7 +161,7 @@ npx expo start
 ---
 
 ## 👨‍💻 Developed By
-**Your Name**  
+**K.Hemanth Kumar**  
 *Building the future of connected services.*
 
 ---
