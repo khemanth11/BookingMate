@@ -97,8 +97,13 @@ export default function ProviderBookingsScreen() {
             setIsCameraVisible(false);
 
             if (res.data.verified) {
-                Alert.alert('✅ AI Verified', 'The job completion was verified successfully!');
-                fetchBookings(); // Refresh list
+                // Now call the official dual-verification endpoint for provider
+                await axios.put(`${API_URL}/${verifyingBookingId}/provider-verify`, {}, {
+                    headers: { 'x-auth-token': token }
+                });
+
+                Alert.alert('✅ AI Verified', 'Job completion verified! Funds will be released once the consumer also confirms.');
+                fetchBookings(); // Refresh list to show new status
             } else {
                 Alert.alert('❌ Verification Failed', res.data.reasoning || 'The photo does not appear to show a completed job.');
             }
@@ -113,10 +118,10 @@ export default function ProviderBookingsScreen() {
         // Quick badge colors based on status
         const getStatusColor = () => {
             switch (item.status) {
-                case 'confirmed': return '#1a472a'; // Green
-                case 'rejected': return '#5e1a1a'; // Dark Red
-                case 'completed': return '#0f3460'; // Blue
-                default: return '#b8860b'; // Yellow/Orange for Pending
+                case 'confirmed': return '#10b981'; // Emerald
+                case 'rejected': return '#f43f5e'; // Rose
+                case 'completed': return '#3b82f6'; // Blue
+                default: return '#64748b'; // Slate for Pending
             }
         };
 
@@ -134,35 +139,49 @@ export default function ProviderBookingsScreen() {
                 <Text style={styles.cardInfo}>⏰ Time: {item.startTime} - {item.endTime}</Text>
                 <Text style={styles.cardInfo}>💰 Price: ₹{item.listingId?.price || 'N/A'}</Text>
 
+                <View style={styles.verificationRow}>
+                    <Text style={[styles.verifBadge, item.providerVerified ? styles.verifSuccess : styles.verifPending]}>
+                        {item.providerVerified ? '✓ AI Verified' : '○ AI Pending'}
+                    </Text>
+                    <Text style={[styles.verifBadge, item.consumerVerified ? styles.verifSuccess : styles.verifPending]}>
+                        {item.consumerVerified ? '✓ User Verified' : '○ User Pending'}
+                    </Text>
+                </View>
+
+                {item.payoutReleased && (
+                    <View style={styles.payoutBadge}>
+                        <Text style={styles.payoutText}>💰 Payout Released to Wallet</Text>
+                    </View>
+                )}
+
                 {item.status === 'pending' && (
-                    <View style={styles.actions}>
+                    <View style={styles.actionsBox}>
                         <TouchableOpacity
-                            style={styles.acceptBtn}
+                            style={styles.acceptActionBtn}
                             onPress={() => updateStatus(item._id, 'confirmed')}
                         >
-                            <Text style={[styles.btnText, { color: '#065F46' }]}>✓ Accept</Text>
+                            <Text style={styles.acceptBtnLabel}>✓ Accept</Text>
                         </TouchableOpacity>
                         <TouchableOpacity
-                            style={styles.rejectBtn}
+                            style={styles.rejectActionBtn}
                             onPress={() => updateStatus(item._id, 'rejected')}
                         >
-                            <Text style={[styles.btnText, { color: '#991B1B' }]}>✗ Reject</Text>
+                            <Text style={styles.rejectBtnLabel}>✗ Reject</Text>
                         </TouchableOpacity>
                     </View>
                 )}
 
-                {/* Provide a Complete option and Chat option if it's confirmed */}
                 {item.status === 'confirmed' && (
-                    <View style={[styles.actions, { marginTop: 16 }]}>
+                    <View style={styles.actionsBox}>
                         <TouchableOpacity
-                            style={styles.completeBtn}
+                            style={styles.completeActionBtn}
                             onPress={() => handleVerifyAndComplete(item._id)}
                         >
-                            <Text style={[styles.btnText, { color: '#1D4ED8' }]}>📸 Verify & Complete</Text>
+                            <Text style={styles.completeBtnLabel}>📸 AI Verify & Complete</Text>
                         </TouchableOpacity>
 
                         <TouchableOpacity
-                            style={styles.providerChatBtn}
+                            style={styles.chatActionBtn}
                             onPress={() => navigation.navigate('ChatScreen', {
                                 bookingId: item._id,
                                 receiverName: item.userId?.name || 'Customer',
@@ -170,7 +189,7 @@ export default function ProviderBookingsScreen() {
                                 senderId: user?.id
                             })}
                         >
-                            <Text style={styles.providerChatText}>💬 Chat</Text>
+                            <Text style={styles.chatBtnLabel}>💬 Chat</Text>
                         </TouchableOpacity>
                     </View>
                 )}
@@ -188,8 +207,8 @@ export default function ProviderBookingsScreen() {
                     <Text style={styles.backIcon}>← </Text>
                 </TouchableOpacity>
                 <View>
-                    <Text style={styles.headerTitle}>Booking Requests</Text>
-                    <Text style={styles.headerSub}>Manage your incoming jobs</Text>
+                    <Text style={styles.headerTitleText}>Service Requests</Text>
+                    <Text style={styles.headerSubText}>Manage your workflow</Text>
                 </View>
             </View>
 
@@ -264,56 +283,65 @@ const styles = StyleSheet.create({
         borderColor: '#e5e7eb',
     },
     backIcon: { color: '#111827', fontSize: 16, fontWeight: 'bold' },
-    headerTitle: { color: '#111827', fontSize: 26, fontWeight: '800', letterSpacing: -0.5 },
-    headerSub: { color: '#6b7280', fontSize: 14, marginTop: 4, fontWeight: '500' },
+    headerTitleText: { color: '#0f172a', fontSize: 28, fontWeight: '900', letterSpacing: -0.8 },
+    headerSubText: { color: '#64748b', fontSize: 15, marginTop: 2, fontWeight: '600' },
     card: {
         backgroundColor: '#ffffff',
-        borderRadius: 20,
-        padding: 20,
-        marginBottom: 16,
+        borderRadius: 24,
+        padding: 24,
+        marginBottom: 20,
         borderWidth: 1,
-        borderColor: '#e5e7eb',
+        borderColor: '#e2e8f0',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.05,
+        shadowRadius: 10,
+        elevation: 2,
     },
     cardHeader: {
         flexDirection: 'row', justifyContent: 'space-between',
-        alignItems: 'flex-start', marginBottom: 12,
+        alignItems: 'flex-start', marginBottom: 16,
     },
-    cardTitle: { color: '#111827', fontSize: 18, fontWeight: 'bold', flex: 1, marginRight: 10 },
+    cardTitle: { color: '#0f172a', fontSize: 20, fontWeight: '800', flex: 1, marginRight: 10, letterSpacing: -0.4 },
     badge: { borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6 },
-    badgeText: { color: '#fff', fontSize: 11, fontWeight: 'bold', letterSpacing: 0.5 },
-    cardInfo: { color: '#6b7280', fontSize: 14, marginBottom: 8, fontWeight: '500' },
-    actions: {
+    badgeText: { color: '#fff', fontSize: 10, fontWeight: '900', letterSpacing: 0.5 },
+    cardInfo: { color: '#64748b', fontSize: 15, marginBottom: 8, fontWeight: '600' },
+    actionsBox: {
         flexDirection: 'row',
         gap: 12,
-        marginTop: 16,
+        marginTop: 20,
         borderTopWidth: 1,
-        borderTopColor: '#e5e7eb',
-        paddingTop: 16,
+        borderTopColor: '#f1f5f9',
+        paddingTop: 20,
     },
-    acceptBtn: {
-        flex: 1, backgroundColor: '#a4c3b2',
-        borderRadius: 12, padding: 14, alignItems: 'center',
+    acceptActionBtn: {
+        flex: 1, backgroundColor: '#f0fdf4',
+        borderRadius: 14, padding: 16, alignItems: 'center',
+        borderWidth: 1, borderColor: '#dcfce7',
     },
-    rejectBtn: {
-        flex: 1, backgroundColor: '#fca5a5',
-        borderRadius: 12, padding: 14, alignItems: 'center',
+    acceptBtnLabel: { color: '#16a34a', fontWeight: '800', fontSize: 15 },
+    rejectActionBtn: {
+        flex: 1, backgroundColor: '#fff1f2',
+        borderRadius: 14, padding: 16, alignItems: 'center',
     },
-    completeBtn: {
-        flex: 1, backgroundColor: '#bfdbfe',
-        borderRadius: 12, padding: 14, alignItems: 'center',
+    rejectBtnLabel: { color: '#e11d48', fontWeight: '800', fontSize: 15 },
+    completeActionBtn: {
+        flex: 1.5, backgroundColor: '#0f172a',
+        borderRadius: 14, padding: 16, alignItems: 'center',
+        shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1, shadowRadius: 8, elevation: 3,
     },
-    providerChatBtn: {
-        flex: 1, backgroundColor: '#f3f4f6',
-        borderRadius: 12, padding: 14, alignItems: 'center',
-        borderWidth: 1,
-        borderColor: '#e5e7eb',
+    completeBtnLabel: { color: '#ffffff', fontWeight: '900', fontSize: 14 },
+    chatActionBtn: {
+        flex: 1, backgroundColor: '#f8fafc',
+        borderRadius: 14, padding: 16, alignItems: 'center',
+        borderWidth: 1, borderColor: '#f1f5f9',
     },
-    providerChatText: { color: '#111827', fontWeight: 'bold' },
-    btnText: { fontWeight: 'bold', fontSize: 15 },
-    emptyContainer: { alignItems: 'center', marginTop: 80, paddingHorizontal: 20 },
-    emptyIcon: { fontSize: 50, marginBottom: 16 },
-    emptyText: { color: '#111827', fontSize: 22, fontWeight: '800' },
-    emptyHint: { color: '#6b7280', fontSize: 15, marginTop: 10, textAlign: 'center', lineHeight: 22 },
+    chatBtnLabel: { color: '#0f172a', fontWeight: '800', fontSize: 15 },
+    emptyContainer: { alignItems: 'center', marginTop: 100, paddingHorizontal: 40 },
+    emptyIcon: { fontSize: 60, marginBottom: 20 },
+    emptyText: { color: '#0f172a', fontSize: 24, fontWeight: '900', letterSpacing: -0.5 },
+    emptyHint: { color: '#64748b', fontSize: 15, marginTop: 12, textAlign: 'center', lineHeight: 22, fontWeight: '500' },
     
     // Camera Styles
     cameraContainer: { flex: 1, backgroundColor: '#000' },
@@ -365,5 +393,43 @@ const styles = StyleSheet.create({
         color: '#ffffff',
         fontSize: 16,
         fontWeight: 'bold'
+    },
+    verificationRow: {
+        flexDirection: 'row',
+        gap: 8,
+        marginTop: 12,
+        marginBottom: 8
+    },
+    verifBadge: {
+        fontSize: 11,
+        fontWeight: '700',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 8,
+        overflow: 'hidden'
+    },
+    verifSuccess: {
+        backgroundColor: '#f0fdf4',
+        color: '#16a34a'
+    },
+    verifPending: {
+        backgroundColor: '#f8fafc',
+        color: '#64748b',
+        borderWidth: 1,
+        borderColor: '#e2e8f0'
+    },
+    payoutBadge: {
+        backgroundColor: '#eff6ff',
+        padding: 10,
+        borderRadius: 12,
+        marginTop: 10,
+        borderWidth: 1,
+        borderColor: '#dbeafe',
+        alignItems: 'center'
+    },
+    payoutText: {
+        color: '#2563eb',
+        fontWeight: '800',
+        fontSize: 13
     }
 });

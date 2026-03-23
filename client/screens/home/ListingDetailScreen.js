@@ -6,13 +6,16 @@ import {
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../context/LanguageContext';
 
 const TIME_SLOTS = ['8:00 AM', '10:00 AM', '12:00 PM', '2:00 PM', '4:00 PM', '6:00 PM'];
 
 export default function ListingDetailScreen({ route, navigation }) {
   const { listing, category } = route.params;
   const { user } = useAuth();
+  const { t } = useLanguage();
   const [reviews, setReviews] = useState([]);
+  const [isFavorite, setIsFavorite] = useState(false);
 
   useEffect(() => {
     const fetchReviews = async () => {
@@ -24,8 +27,22 @@ export default function ListingDetailScreen({ route, navigation }) {
         console.error('Error fetching reviews:', err);
       }
     };
+    
+    const checkFavorite = async () => {
+        if (!user) return;
+        try {
+            const token = await AsyncStorage.getItem('token');
+            const res = await axios.get(`http://10.113.112.195:5000/api/auth/favorites`, {
+                headers: { 'x-auth-token': token }
+            });
+            const favIds = res.data.map(f => f._id || f);
+            setIsFavorite(favIds.includes(listing._id || listing.id));
+        } catch (err) { /* ignore */ }
+    };
+
     fetchReviews();
-  }, []);
+    checkFavorite();
+  }, [listing._id, listing.id, user]);
 
   const renderStars = (rating) => {
     const filled = Math.round(rating);
@@ -51,37 +68,69 @@ export default function ListingDetailScreen({ route, navigation }) {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Text style={styles.backIcon}>←</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Details</Text>
+        <Text style={styles.headerTitle}>{t('details')}</Text>
+        <TouchableOpacity 
+          onPress={async () => {
+            if (!user) {
+              Alert.alert('Error', 'Please log in to favorite services.');
+              return;
+            }
+            try {
+              const token = await AsyncStorage.getItem('token');
+              const res = await axios.post(`http://10.113.112.195:5000/api/auth/favorites/${listing._id || listing.id}`, {}, {
+                headers: { 'x-auth-token': token }
+              });
+              setIsFavorite(res.data.includes(listing._id || listing.id));
+              Alert.alert(isFavorite ? 'Removed from Wishlist' : 'Added to Wishlist');
+            } catch (err) {
+              console.error('Favorite Error:', err);
+            }
+          }}
+          style={styles.favBtn}
+        >
+          <Text style={styles.favIcon}>{isFavorite ? '❤️' : '🤍'}</Text>
+        </TouchableOpacity>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         {/* Main Card */}
         <View style={styles.mainCard}>
-          <View style={[styles.iconCircle]}>
+          <View style={styles.iconCircle}>
             <Text style={styles.bigIcon}>{category.icon}</Text>
           </View>
           <Text style={styles.itemName}>{listing.name}</Text>
+          
           <TouchableOpacity 
             onPress={() => navigation.navigate('ProfileScreen', { 
               providerId: listing.providerId?._id || listing.providerId,
               providerName: listing.providerId?.name || 'Local Expert'
             })}
+            style={styles.providerTag}
           >
-            <Text style={styles.itemLocation}>👤 Provider: {listing.providerId?.name || 'Local Expert'} (View Profile)</Text>
-          </TouchableOpacity>
-          <Text style={styles.itemRating}>₹{listing.price}</Text>
-
-          <View style={[styles.badge, { backgroundColor: listing.available ? '#a4c3b2' : '#e5989b' }]}>
-            <Text style={[styles.badgeText, { color: listing.available ? '#1b4332' : '#5c1b1b' }]}>
-              {listing.available ? 'Available Now' : 'Currently Busy'}
+            <Text style={styles.providerText}>
+               {listing.providerId?.name || 'Local Expert'} 
+               {listing.providerId?.isVerified && <Text style={styles.verifiedIcon}> ✅</Text>}
             </Text>
+            <Text style={styles.viewProfileTxt}> View Profile</Text>
+          </TouchableOpacity>
+
+          <View style={styles.statsRow}>
+            <View style={styles.priceContainer}>
+              <Text style={styles.priceLabel}>Price</Text>
+              <Text style={styles.priceValue}>₹{listing.price}</Text>
+            </View>
+            <View style={styles.divider} />
+            <View style={styles.ratingContainer}>
+              <Text style={styles.ratingLabel}>Rating</Text>
+              <Text style={styles.ratingValue}>
+                ★ {listing.averageRating?.toFixed(1) || 'New'}
+              </Text>
+            </View>
           </View>
 
-          {/* Star Rating */}
-          <View style={styles.ratingRow}>
-            <Text style={styles.ratingStars}>{renderStars(listing.averageRating || 0)}</Text>
-            <Text style={styles.ratingText}>
-              {listing.averageRating ? `${listing.averageRating.toFixed(1)}` : 'New'} ({listing.totalReviews || 0} reviews)
+          <View style={[styles.statusBadge, { backgroundColor: listing.available ? '#dcfce7' : '#fee2e2' }]}>
+            <Text style={[styles.statusText, { color: listing.available ? '#166534' : '#991b1b' }]}>
+              {listing.available ? '● Available Now' : '● Currently Busy'}
             </Text>
           </View>
         </View>
@@ -108,14 +157,14 @@ export default function ListingDetailScreen({ route, navigation }) {
           <Text style={styles.bookBtnText}>
             {!listing.available
               ? 'Service Unavailable'
-              : 'Proceed to Schedule'}
+              : t('book_now')}
           </Text>
         </TouchableOpacity>
 
         {/* Recent Reviews */}
         {reviews.length > 0 && (
           <View style={styles.sectionContainer}>
-            <Text style={styles.sectionTitle}>Recent Reviews</Text>
+            <Text style={styles.sectionTitle}>{t('reviews')} ({reviews.length})</Text>
             {reviews.slice(0, 5).map((review, idx) => (
               <View key={review._id || idx} style={styles.reviewCard}>
                 <View style={styles.reviewHeader}>
@@ -165,61 +214,131 @@ const styles = StyleSheet.create({
     fontSize: 26,
     fontWeight: '800',
     letterSpacing: -0.5,
+    flex: 1,
+  },
+  favBtn: {
+    padding: 8,
+    backgroundColor: '#ffffff',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  favIcon: {
+    fontSize: 20,
   },
   scrollContent: {
     paddingBottom: 40,
   },
   mainCard: {
     backgroundColor: '#ffffff',
-    borderRadius: 24,
+    borderRadius: 32,
     padding: 32,
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 28,
     borderWidth: 1,
     borderColor: '#e5e7eb',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 15,
+    elevation: 3,
   },
   iconCircle: {
-    backgroundColor: '#f3f4f6', // Replaced dynamic background with solid simple box
-    borderRadius: 24,
-    width: 100,
-    height: 100,
+    backgroundColor: '#f8fafc',
+    borderRadius: 28,
+    width: 90,
+    height: 90,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#f1f5f9',
   },
   bigIcon: {
-    fontSize: 50,
+    fontSize: 44,
   },
   itemName: {
-    color: '#111827',
-    fontSize: 26,
-    fontWeight: '800',
-    marginBottom: 8,
-    letterSpacing: -0.5,
+    color: '#0f172a',
+    fontSize: 28,
+    fontWeight: '900',
+    marginBottom: 12,
+    letterSpacing: -0.8,
     textAlign: 'center',
   },
-  itemLocation: {
-    color: '#6b7280',
-    fontSize: 15,
-    fontWeight: '500',
-    marginBottom: 12,
+  providerTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f1f5f9',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    marginBottom: 28,
   },
-  itemRating: {
-    color: '#111827',
-    fontSize: 26,
-    fontWeight: '800',
-    marginBottom: 24,
+  providerText: {
+    color: '#64748b',
+    fontSize: 14,
+    fontWeight: '700',
   },
-  badge: {
+  viewProfileTxt: {
+    color: '#3b82f6',
+    fontSize: 13,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginBottom: 28,
+    paddingHorizontal: 10,
+  },
+  priceContainer: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  priceLabel: {
+    fontSize: 12,
+    color: '#64748b',
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    marginBottom: 4,
+  },
+  priceValue: {
+    fontSize: 24,
+    color: '#0f172a',
+    fontWeight: '900',
+  },
+  divider: {
+    width: 1,
+    height: 30,
+    backgroundColor: '#e2e8f0',
+  },
+  ratingContainer: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  ratingLabel: {
+    fontSize: 12,
+    color: '#64748b',
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    marginBottom: 4,
+  },
+  ratingValue: {
+    fontSize: 24,
+    color: '#f59e0b',
+    fontWeight: '900',
+  },
+  statusBadge: {
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 8,
   },
-  badgeText: {
-    fontWeight: 'bold',
+  statusText: {
+    fontWeight: '800',
     fontSize: 13,
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
+    letterSpacing: 0.2,
   },
   ratingRow: {
     flexDirection: 'row',
@@ -240,17 +359,17 @@ const styles = StyleSheet.create({
     marginBottom: 28,
   },
   sectionTitle: {
-    color: '#111827',
+    color: '#0f172a',
     fontSize: 22,
-    fontWeight: '800',
-    marginBottom: 16,
-    letterSpacing: -0.3,
+    fontWeight: '900',
+    marginBottom: 12,
+    letterSpacing: -0.5,
   },
   descriptionText: {
-    color: '#6b7280',
+    color: '#475569',
     fontSize: 16,
-    lineHeight: 24,
-    fontWeight: '400',
+    lineHeight: 26,
+    fontWeight: '500',
   },
   slotsGrid: {
     flexDirection: 'row',
@@ -281,19 +400,24 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   bookBtn: {
-    backgroundColor: '#111827',
-    borderRadius: 16,
-    padding: 18,
+    backgroundColor: '#0f172a',
+    borderRadius: 20,
+    padding: 22,
     alignItems: 'center',
     marginTop: 10,
+    shadowColor: '#0f172a',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.2,
+    shadowRadius: 15,
+    elevation: 5,
   },
   bookBtnDisabled: {
-    backgroundColor: '#e5e7eb',
+    backgroundColor: '#e2e8f0',
   },
   bookBtnText: {
     color: '#ffffff',
-    fontWeight: 'bold',
-    fontSize: 16,
+    fontWeight: '900',
+    fontSize: 18,
     letterSpacing: 0.5,
   },
   reviewCard: {

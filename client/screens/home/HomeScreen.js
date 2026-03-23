@@ -1,9 +1,14 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
     View, Text, StyleSheet, TouchableOpacity,
-    ScrollView, StatusBar, SafeAreaView, Platform
+    ScrollView, StatusBar, SafeAreaView, Platform,
+    FlatList, Image
 } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../context/LanguageContext';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 
 const CATEGORIES = [
@@ -15,8 +20,31 @@ const CATEGORIES = [
     { id: '6', name: 'Seeds & Crops', icon: '🌾', desc: 'Buy/sell seeds', color: '#5e4a1a' },
 ];
 
-export default function HomeScreen({ navigation }) {
+export default function HomeScreen() {
+    const navigation = useNavigation();
     const { user, logout } = useAuth();
+    const { language, changeLanguage, t } = useLanguage();
+    const [listings, setListings] = useState([]);
+    const [recommendations, setRecommendations] = useState([]);
+
+    const fetchRecommendations = async () => {
+        try {
+            const token = await AsyncStorage.getItem('token');
+            if (!token) return;
+            const res = await axios.get('http://10.113.112.195:5000/api/listings/recommendations', {
+                headers: { 'x-auth-token': token }
+            });
+            setRecommendations(res.data);
+        } catch (err) {
+            console.error('Recommendations Fetch Error:', err);
+        }
+    };
+
+    useFocusEffect(
+        React.useCallback(() => {
+            fetchRecommendations();
+        }, [])
+    );
 
     const handleLogout = () => {
         logout();
@@ -30,49 +58,96 @@ export default function HomeScreen({ navigation }) {
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
                 {/* Header */}
                 <View style={styles.header}>
-                    <View>
-                        <Text style={styles.subGreeting}>Good Morning 👋</Text>
-                        <Text style={styles.greeting}>
-                            {user?.name ? user.name : 'Welcome back!'}
-                        </Text>
+                    <View style={styles.headerInfo}>
+                        {/* <Text style={styles.welcomeText}>{t('welcome')},</Text> */}
+                        <Text style={styles.userName}>{user?.name || 'Local User'} 👋</Text>
                     </View>
-                    <TouchableOpacity style={styles.profileBtn} onPress={handleLogout}>
-                        <Text style={styles.profileInitials}>
-                            {user?.name ? user.name.charAt(0).toUpperCase() : '👤'}
-                        </Text>
-                    </TouchableOpacity>
+                    <View style={styles.headerRight}>
+                        <TouchableOpacity
+                            onPress={() => changeLanguage(language === 'en' ? 'hi' : 'en')}
+                            style={styles.langBtn}
+                        >
+                            <Text style={styles.langBtnText}>{language === 'en' ? 'हिन्दी' : 'EN'}</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            onPress={handleLogout}
+                            style={styles.logoutBtn}
+                        >
+                            <Text style={styles.logoutIcon}>🚪</Text>
+                        </TouchableOpacity>
+                    </View>
                 </View>
 
                 {/* Search / Action Bar */}
                 <TouchableOpacity
-                    style={styles.actionContainer}
+                    style={styles.searchBar}
                     onPress={() => navigation.navigate('SearchScreen')}
                 >
-                    <View style={styles.searchBar}>
-                        <Text style={styles.searchIcon}>✨</Text>
-                        <Text style={styles.searchText}>Try: "I need a plumber for my sink"</Text>
-                    </View>
+                    <Text style={styles.searchIcon}>🔍</Text>
+                    <Text style={styles.searchText}>{t('search_hint')}</Text>
                 </TouchableOpacity>
 
                 <View style={styles.quickActionsRow}>
                     <TouchableOpacity
-                        style={styles.quickActionBtn}
+                        style={[styles.quickActionBtn, { backgroundColor: '#1c3144' }]}
                         onPress={() => navigation.navigate('ConsumerBookings')}
                     >
-                        <Text style={styles.quickActionText}>📅 Bookings</Text>
+                        <Text style={[styles.quickActionText, { color: '#f8f9fa' }]}>{t('my_bookings')}</Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity
                         style={[styles.quickActionBtn, { backgroundColor: '#2d6a4f' }]}
                         onPress={() => navigation.navigate('MapScreen')}
                     >
-                        <Text style={[styles.quickActionText, { color: '#f8f9fa' }]}>🗺️ Map</Text>
+                        <Text style={[styles.quickActionText, { color: '#f8f9fa' }]}>🗺️ {t('map')}</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        style={[styles.quickActionBtn, { backgroundColor: '#b5838d' }]}
+                        onPress={() => navigation.navigate('FavoritesScreen')}
+                    >
+                        <Text style={[styles.quickActionText, { color: '#f8f9fa' }]}>❤️ {t('wishlist')}</Text>
                     </TouchableOpacity>
                 </View>
 
+                {/* Recommendations Section */}
+                {recommendations.length > 0 && (
+                    <View style={styles.recContainer}>
+                        <View style={styles.sectionHeader}>
+                            <Text style={styles.sectionTitle}>💡 {t('Suggestions') || 'Suggested for You'}</Text>
+                            {/* <Text style={styles.sectionSubtitle}>AI-powered picks for your needs</Text> */}
+                        </View>
+                        <FlatList
+                            horizontal
+                            showsHorizontalScrollIndicator={false}
+                            data={recommendations}
+                            keyExtractor={(item) => item._id}
+                            renderItem={({ item }) => (
+                                <TouchableOpacity
+                                    style={styles.recCard}
+                                    onPress={() => navigation.navigate('ListingDetail', { listing: item, category: { name: item.category, icon: '✨' } })}
+                                >
+                                    <View style={styles.recHeader}>
+                                        <View style={styles.recPriceTag}>
+                                            <Text style={styles.recPrice}>₹{item.price}</Text>
+                                        </View>
+                                        <Text style={styles.recRating}>★ {item.averageRating?.toFixed(1) || 'New'}</Text>
+                                    </View>
+                                    <Text style={styles.recName} numberOfLines={1}>{item.name}</Text>
+                                    <View style={styles.recFooter}>
+                                        <Text style={styles.recProvider} numberOfLines={1}>👤 {item.providerId?.name || 'Expert'}</Text>
+                                        {item.providerId?.isVerified && <Text style={styles.recVerified}>✅</Text>}
+                                    </View>
+                                </TouchableOpacity>
+                            )}
+                            contentContainerStyle={styles.recList}
+                        />
+                    </View>
+                )}
+
                 {/* Categories Section */}
                 <View style={styles.sectionHeader}>
-                    <Text style={styles.sectionTitle}>Browse Services</Text>
+                    <Text style={styles.sectionTitle}>{t('categories')}</Text>
                     <Text style={styles.sectionSubtitle}>Find reliable help nearby</Text>
                 </View>
 
@@ -113,14 +188,55 @@ const styles = StyleSheet.create({
         marginTop: 10, // Added margin as requested by user
         marginBottom: 24,
     },
-    greeting: {
-        fontSize: 26,
-        fontWeight: '800',
-        color: '#111827',
-        letterSpacing: 0.5,
+    headerInfo: {
+        flex: 1
     },
-    subGreeting: {
-        fontSize: 19,
+    headerRight: {
+        flexDirection: 'row',
+        alignItems: 'center'
+    },
+    langBtn: {
+        marginRight: 15,
+        backgroundColor: '#f3f4f6',
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: '#e5e7eb'
+    },
+    langBtnText: {
+        fontSize: 13,
+        fontWeight: 'bold',
+        color: '#111827'
+    },
+    welcomeText: {
+        color: '#6b7280',
+        fontSize: 16,
+        fontWeight: '500',
+        marginBottom: 2
+    },
+    userName: {
+        fontSize: 28,
+        fontWeight: '900',
+        color: '#111827',
+        letterSpacing: -0.5,
+    },
+    logoutBtn: {
+        backgroundColor: '#fee2e2',
+        width: 44,
+        height: 44,
+        borderRadius: 14,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginLeft: 12,
+        borderWidth: 1,
+        borderColor: '#fecaca',
+    },
+    logoutIcon: {
+        fontSize: 18,
+    },
+    tagline: {
+        fontSize: 14,
         color: '#6b7280',
         fontWeight: '600',
         marginBottom: 4,
@@ -169,7 +285,8 @@ const styles = StyleSheet.create({
     quickActionsRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        marginBottom: 32,
+        marginBottom: 24,
+        marginTop: 12,
         gap: 12,
     },
     quickActionBtn: {
@@ -232,5 +349,71 @@ const styles = StyleSheet.create({
         color: '#6b7280',
         fontSize: 13,
         lineHeight: 18,
+    },
+    recContainer: {
+        marginBottom: 32,
+    },
+    recList: {
+        paddingRight: 20,
+    },
+    recCard: {
+        backgroundColor: '#ffffff',
+        borderRadius: 24,
+        padding: 20,
+        width: 200,
+        marginRight: 16,
+        borderWidth: 1,
+        borderColor: '#e5e7eb',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.05,
+        shadowRadius: 10,
+        elevation: 3,
+    },
+    recHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 16,
+    },
+    recPriceTag: {
+        backgroundColor: '#111827',
+        paddingHorizontal: 10,
+        paddingVertical: 5,
+        borderRadius: 10,
+    },
+    recPrice: {
+        fontSize: 14,
+        fontWeight: '900',
+        color: '#ffffff',
+    },
+    recRating: {
+        fontSize: 13,
+        fontWeight: '700',
+        color: '#f59e0b',
+    },
+    recName: {
+        fontSize: 17,
+        fontWeight: '800',
+        color: '#111827',
+        marginBottom: 12,
+        letterSpacing: -0.2,
+    },
+    recFooter: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        borderTopWidth: 1,
+        borderTopColor: '#f3f4f6',
+        paddingTop: 12,
+    },
+    recProvider: {
+        fontSize: 13,
+        color: '#6b7280',
+        fontWeight: '600',
+        flex: 1,
+    },
+    recVerified: {
+        fontSize: 12,
+        marginLeft: 4,
     },
 });

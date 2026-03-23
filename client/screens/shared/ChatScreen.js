@@ -105,14 +105,15 @@ export default function ChatScreen() {
                     <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
                         <Text style={styles.backIcon}>←</Text>
                     </TouchableOpacity>
-
-                    <View style={styles.headerInfo}>
-                        <Text style={styles.headerTitle}>{receiverName}</Text>
-                        <Text style={styles.headerSub}>Live Chat</Text>
+                    <View style={styles.headerTitleContainer}>
+                        <Text style={styles.headerTitleText}>{receiverName}</Text>
+                        <View style={styles.statusRow}>
+                            <View style={styles.statusDot} />
+                            <Text style={styles.statusText}>Active Now</Text>
+                        </View>
                     </View>
-
-                    <TouchableOpacity style={styles.callBtn} onPress={handleCall}>
-                        <Text style={styles.callIcon}>📞</Text>
+                    <TouchableOpacity style={styles.callActionBtn} onPress={handleCall}>
+                        <Text style={styles.callActionIcon}>📞</Text>
                     </TouchableOpacity>
                 </View>
 
@@ -151,24 +152,31 @@ const styles = StyleSheet.create({
     header: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: 16,
-        paddingTop: 36, // Added margin from top
+        paddingHorizontal: 20,
+        paddingBottom: 20,
+        paddingTop: 60,
         backgroundColor: '#ffffff',
         borderBottomWidth: 1,
-        borderBottomColor: '#e5e7eb',
+        borderBottomColor: '#f1f5f9',
     },
-    backBtn: { padding: 4 },
-    backIcon: { color: '#111827', fontSize: 22, fontWeight: 'bold' },
-    headerInfo: { flex: 1, marginLeft: 16 },
-    headerTitle: { color: '#111827', fontSize: 18, fontWeight: '800' },
-    headerSub: { color: '#6b7280', fontSize: 13, fontWeight: '700' },
-    callBtn: {
-        backgroundColor: '#f3f4f6',
+    backBtn: {
+        padding: 10,
+        backgroundColor: '#f1f5f9',
+        borderRadius: 14,
+        marginRight: 16,
+    },
+    backIcon: { color: '#0f172a', fontSize: 18, fontWeight: 'bold' },
+    headerTitleContainer: { flex: 1 },
+    headerTitleText: { color: '#0f172a', fontSize: 20, fontWeight: '900', letterSpacing: -0.5 },
+    statusRow: { flexDirection: 'row', alignItems: 'center', marginTop: 2 },
+    statusDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#22c55e', marginRight: 6 },
+    statusText: { color: '#64748b', fontSize: 13, fontWeight: '700' },
+    callActionBtn: {
+        backgroundColor: '#0f172a',
         padding: 12,
-        borderRadius: 20,
+        borderRadius: 16,
     },
-    callIcon: { fontSize: 20 },
+    callActionIcon: { fontSize: 18, color: '#ffffff' },
     chatContainer: { padding: 16, paddingBottom: 20 },
     msgWrapper: {
         width: '100%',
@@ -178,53 +186,66 @@ const styles = StyleSheet.create({
     msgLeft: { justifyContent: 'flex-start' },
     msgRight: { justifyContent: 'flex-end' },
     msgBubble: {
-        maxWidth: '78%',
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        borderRadius: 20,
+        maxWidth: '80%',
+        paddingHorizontal: 18,
+        paddingVertical: 14,
+        borderRadius: 24,
     },
     bubbleLeft: {
         backgroundColor: '#ffffff',
-        borderBottomLeftRadius: 4,
+        borderBottomLeftRadius: 6,
         borderWidth: 1,
-        borderColor: '#e5e7eb',
+        borderColor: '#f1f5f9',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 5,
+        elevation: 1,
     },
     bubbleRight: {
-        backgroundColor: '#111827',
-        borderBottomRightRadius: 4,
+        backgroundColor: '#0f172a',
+        borderBottomRightRadius: 6,
     },
     msgText: {
-        fontSize: 15,
-        lineHeight: 22,
+        fontSize: 16,
+        lineHeight: 24,
+        fontWeight: '500',
     },
-    msgTextLeft: { color: '#111827' },
+    msgTextLeft: { color: '#0f172a' },
     msgTextRight: { color: '#ffffff' },
     inputContainer: {
         flexDirection: 'row',
-        padding: 12,
-        paddingHorizontal: 16,
+        padding: 20,
         backgroundColor: '#ffffff',
         alignItems: 'center',
         borderTopWidth: 1,
-        borderTopColor: '#e5e7eb',
+        borderTopColor: '#f1f5f9',
     },
     input: {
         flex: 1,
-        backgroundColor: '#f3f4f6',
-        color: '#111827',
-        borderRadius: 24,
+        backgroundColor: '#f8fafc',
+        color: '#0f172a',
+        borderRadius: 20,
         paddingHorizontal: 20,
-        paddingVertical: 12,
-        fontSize: 15,
+        paddingVertical: 14,
+        fontSize: 16,
         marginRight: 12,
+        borderWidth: 1,
+        borderColor: '#f1f5f9',
+        fontWeight: '500',
     },
     sendBtn: {
-        backgroundColor: '#111827',
-        width: 48,
-        height: 48,
-        borderRadius: 24,
+        backgroundColor: '#0f172a',
+        width: 52,
+        height: 52,
+        borderRadius: 18,
         justifyContent: 'center',
         alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 3,
     },
-    sendIcon: { color: '#ffffff', fontSize: 18, fontWeight: 'bold' },
+    sendIcon: { color: '#ffffff', fontSize: 20, fontWeight: '900' },
 });

@@ -1,5 +1,6 @@
 import express from 'express';
 import Listing from '../models/Listing.js';
+import User from '../models/User.js';
 import jwt from 'jsonwebtoken';
 import { syncListingToPinecone, deleteListingFromPinecone, semanticSearch } from '../utils/pinecone.js';
 
@@ -223,6 +224,43 @@ router.put('/:id/blocked-dates', auth, async (req, res) => {
         res.json({ message: 'Blocked dates updated', blockedDates: listing.blockedDates });
     } catch (err) {
         console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
+// @route   GET /api/listings/recommendations
+// @desc    Get AI-powered personal recommendations based on favorites
+// @access  Private
+router.get('/recommendations', auth, async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id).populate('favorites');
+        
+        if (!user || !user.favorites || user.favorites.length === 0) {
+            // If no favorites, return top rated or random listings
+            const randomListings = await Listing.find().limit(4).populate('providerId', 'name isVerified');
+            return res.json(randomListings);
+        }
+
+        // Use the most recent favorite as the seed for recommendations
+        const seedListing = user.favorites[user.favorites.length - 1];
+        const query = `Service similar to ${seedListing.name}: ${seedListing.description}`;
+        
+        const matchingIds = await semanticSearch(query);
+        const favoriteIds = user.favorites.map(f => f._id.toString());
+        
+        // Filter out already favorited items
+        const filteredIds = matchingIds.filter(id => !favoriteIds.includes(id.toString())).slice(0, 4);
+
+        if (filteredIds.length === 0) {
+             const randomListings = await Listing.find({ _id: { $nin: user.favorites } }).limit(4).populate('providerId', 'name isVerified');
+             return res.json(randomListings);
+        }
+
+        const recommendations = await Listing.find({ _id: { $in: filteredIds } }).populate('providerId', 'name isVerified');
+        
+        res.json(recommendations);
+    } catch (err) {
+        console.error('Recommendations Error:', err.message);
         res.status(500).send('Server Error');
     }
 });

@@ -52,9 +52,11 @@ export function AuthProvider({ children }) {
         }
     };
 
-    const register = async (name, email, phone, password, role) => {
+    const register = async (name, email, phone, password, role, expoPushToken) => {
         try {
-            const res = await axios.post(`${API_URL}/register`, { name, email, phone, password, role });
+            const res = await axios.post(`${API_URL}/register`, { 
+                name, email, phone, password, role, expoPushToken 
+            });
             const { token, user } = res.data;
 
             // Return success without logging the user in automatically

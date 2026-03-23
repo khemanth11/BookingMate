@@ -13,9 +13,16 @@ import bookingRoutes from './routes/bookings.js';
 import messageRoutes from './routes/messages.js';
 import aiRoutes from './routes/ai.js';
 import reviewRoutes from './routes/reviews.js';
+import adminRoutes from './routes/admin.js';
+import paymentsRoutes from './routes/payments.js';
+import razorpayRoute from './routes/razorpay.js';
+import walletRoute from './routes/wallet.js';
 
 // Models for Socket.io
 import Message from './models/Message.js';
+import Booking from './models/Booking.js';
+import User from './models/User.js';
+import { sendNotification } from './utils/notifications.js';
 
 const app = express();
 const server = http.createServer(app);
@@ -49,6 +56,10 @@ app.use('/api/bookings', bookingRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/reviews', reviewRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/payments', paymentsRoutes);
+app.use('/api/razorpay', razorpayRoute);
+app.use('/api/wallet', walletRoute);
 
 // Socket.io Logic
 io.on('connection', (socket) => {
@@ -71,6 +82,20 @@ io.on('connection', (socket) => {
             await newMessage.save();
 
             io.to(bookingId).emit('receive_message', newMessage);
+
+            // Send Push Notification to the other party
+            const booking = await Booking.findById(bookingId).populate('listingId');
+            if (booking) {
+                const recipientId = senderId === booking.userId.toString() ? booking.providerId : booking.userId;
+                const sender = await User.findById(senderId);
+                
+                sendNotification(
+                    recipientId,
+                    `New message from ${sender.name} 💬`,
+                    text.length > 50 ? text.substring(0, 47) + '...' : text,
+                    { bookingId, type: 'chat' }
+                );
+            }
         } catch (error) {
             console.error('Error saving message via socket:', error);
         }

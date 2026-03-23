@@ -25,6 +25,7 @@ export default function AddListingScreen() {
     const [description, setDescription] = useState('');
     const [isSaving, setIsSaving] = useState(false);
     const [isOptimizing, setIsOptimizing] = useState(false);
+    const [isSuggesting, setIsSuggesting] = useState(false);
 
     const handleOptimizeAI = async () => {
         if (!description.trim()) {
@@ -42,6 +43,27 @@ export default function AddListingScreen() {
             Alert.alert('AI Error', 'Failed to optimize description. Ensure the backend has a valid OPENAI_API_KEY.');
         } finally {
             setIsOptimizing(false);
+        }
+    };
+
+    const handleSuggestPrice = async () => {
+        if (!name.trim() || !category.trim()) {
+            Alert.alert('Info', 'Please enter Name and Category first so AI can suggest a relevant price.');
+            return;
+        }
+        setIsSuggesting(true);
+        try {
+            const res = await axios.post(`http://10.113.112.195:5000/api/ai/suggest-price`, { 
+                name, category, description 
+            });
+            if (res.data.suggestedPrice) {
+                setPrice(res.data.suggestedPrice);
+            }
+        } catch (err) {
+            console.error(err);
+            Alert.alert('AI Error', 'Failed to get price suggestion.');
+        } finally {
+            setIsSuggesting(false);
         }
     };
 
@@ -90,76 +112,81 @@ export default function AddListingScreen() {
             <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
                 {/* Header */}
                 <View style={styles.header}>
-                    <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-                        <Text style={styles.backText}>← Back</Text>
+                    <TouchableOpacity style={styles.backActionBtn} onPress={() => navigation.goBack()}>
+                        <Text style={styles.backActionText}>← Back</Text>
                     </TouchableOpacity>
-                    <Text style={styles.headerTitle}>Add Listing</Text>
+                    <Text style={styles.headerTitleText}>Create Service</Text>
                     <View style={{ width: 60 }} />
                 </View>
 
                 <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 30 }}>
-                    <Text style={styles.label}>Service Name *</Text>
+                    <Text style={styles.formLabel}>Service Title *</Text>
                     <TextInput
-                        style={styles.input}
-                        placeholder="e.g. Buffalo for rent"
-                        placeholderTextColor="#666"
+                        style={styles.formInput}
+                        placeholder="e.g. Professional Plumbing"
+                        placeholderTextColor="#94a3b8"
                         value={name}
                         onChangeText={setName}
                     />
 
-                    <Text style={styles.label}>Category *</Text>
-                    <View style={styles.categoryGrid}>
+                    <Text style={styles.formLabel}>Category *</Text>
+                    <View style={styles.catGrid}>
                         {CATEGORIES.map((cat) => (
                             <TouchableOpacity
                                 key={cat}
-                                style={[styles.catBtn, category === cat && styles.catBtnActive]}
+                                style={[styles.catChip, category === cat && styles.catChipActive]}
                                 onPress={() => setCategory(cat)}
                             >
-                                <Text style={[styles.catText, category === cat && styles.catTextActive]}>{cat}</Text>
+                                <Text style={[styles.catChipLabel, category === cat && styles.catChipLabelActive]}>{cat}</Text>
                             </TouchableOpacity>
                         ))}
                     </View>
 
-                    <Text style={styles.label}>Price</Text>
+                    <View style={styles.labelActionRow}>
+                        <Text style={styles.formLabel}>Service Price</Text>
+                        <TouchableOpacity style={styles.aiActionBtn} onPress={handleSuggestPrice} disabled={isSuggesting}>
+                            {isSuggesting ? <ActivityIndicator size="small" color="#0f172a" /> : <Text style={styles.aiActionText}>✨ AI Suggest</Text>}
+                        </TouchableOpacity>
+                    </View>
                     <TextInput
-                        style={styles.input}
-                        placeholder="e.g. ₹500/day"
-                        placeholderTextColor="#666"
+                        style={styles.formInput}
+                        placeholder="e.g. ₹500 per visit"
+                        placeholderTextColor="#94a3b8"
                         value={price}
                         onChangeText={setPrice}
                         keyboardType="default"
                     />
 
-                    <View style={styles.switchRow}>
-                        <Text style={styles.label}>Available Now</Text>
+                    <View style={styles.availabilityRow}>
+                        <Text style={styles.formLabel}>Instant Availability</Text>
                         <Switch
                             value={available}
                             onValueChange={setAvailable}
                             thumbColor={available ? '#FFFFFF' : '#FFFFFF'}
-                            trackColor={{ false: '#E5E7EB', true: '#3B82F6' }}
+                            trackColor={{ false: '#e2e8f0', true: '#10b981' }}
                         />
                     </View>
 
-                    <View style={styles.labelRow}>
-                        <Text style={styles.label}>Description</Text>
-                        <TouchableOpacity style={styles.aiBtn} onPress={handleOptimizeAI} disabled={isOptimizing}>
-                            {isOptimizing ? <ActivityIndicator size="small" color="#111827" /> : <Text style={styles.aiBtnText}>✨ Optimize with AI</Text>}
+                    <View style={styles.labelActionRow}>
+                        <Text style={styles.formLabel}>Service Description</Text>
+                        <TouchableOpacity style={styles.aiActionBtn} onPress={handleOptimizeAI} disabled={isOptimizing}>
+                            {isOptimizing ? <ActivityIndicator size="small" color="#0f172a" /> : <Text style={styles.aiActionText}>✨ AI Optimize</Text>}
                         </TouchableOpacity>
                     </View>
                     <TextInput
-                        style={[styles.input, { height: 90, textAlignVertical: 'top' }]}
-                        placeholder="Describe your service..."
-                        placeholderTextColor="#666"
+                        style={[styles.formInput, { height: 120, textAlignVertical: 'top' }]}
+                        placeholder="Detailed overview of your expert services..."
+                        placeholderTextColor="#94a3b8"
                         multiline
                         value={description}
                         onChangeText={setDescription}
                     />
 
-                    <TouchableOpacity style={[styles.button, isSaving && { opacity: 0.7 }]} onPress={handleSave} disabled={isSaving}>
+                    <TouchableOpacity style={[styles.saveListingBtn, isSaving && { opacity: 0.7 }]} onPress={handleSave} disabled={isSaving}>
                         {isSaving ? (
                             <ActivityIndicator color="#FFFFFF" />
                         ) : (
-                            <Text style={styles.buttonText}>✅ Save Listing</Text>
+                            <Text style={styles.saveListingBtnText}>Launch Service</Text>
                         )}
                     </TouchableOpacity>
                 </ScrollView>
@@ -172,56 +199,60 @@ const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#f5f6f8', paddingHorizontal: 16 },
     header: {
         flexDirection: 'row', alignItems: 'center',
-        justifyContent: 'space-between', marginTop: 40, marginBottom: 20, // increased top margin
+        justifyContent: 'space-between', marginTop: 60, marginBottom: 32,
     },
-    backBtn: { padding: 8, backgroundColor: '#ffffff', borderRadius: 14, borderWidth: 1, borderColor: '#e5e7eb' },
-    backText: { color: '#111827', fontSize: 14, fontWeight: '700' },
-    headerTitle: { color: '#111827', fontSize: 20, fontWeight: '800', letterSpacing: -0.3 },
-    label: { color: '#111827', fontSize: 14, fontWeight: '700', marginBottom: 8, marginTop: 4 },
-    input: {
-        backgroundColor: '#ffffff', color: '#111827',
-        borderRadius: 14, padding: 16,
-        marginBottom: 16, fontSize: 15,
-        borderWidth: 1, borderColor: '#e5e7eb',
+    backActionBtn: { padding: 8, backgroundColor: '#ffffff', borderRadius: 14, borderWidth: 1, borderColor: '#e2e8f0' },
+    backActionText: { color: '#0f172a', fontSize: 13, fontWeight: '800' },
+    headerTitleText: { color: '#0f172a', fontSize: 24, fontWeight: '900', letterSpacing: -0.6 },
+    formLabel: { color: '#0f172a', fontSize: 14, fontWeight: '800', marginBottom: 10 },
+    formInput: {
+        backgroundColor: '#f8fafc', color: '#0f172a',
+        borderRadius: 20, padding: 18,
+        marginBottom: 20, fontSize: 15,
+        borderWidth: 1, borderColor: '#f1f5f9',
+        fontWeight: '500'
     },
-    categoryGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
-    catBtn: {
+    catGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 24 },
+    catChip: {
         paddingHorizontal: 16, paddingVertical: 10,
         backgroundColor: '#ffffff', borderRadius: 20,
-        borderWidth: 1, borderColor: '#e5e7eb',
+        borderWidth: 1, borderColor: '#e2e8f0',
     },
-    catBtnActive: { backgroundColor: '#f3f4f6', borderColor: '#111827' },
-    catText: { color: '#6b7280', fontSize: 13, fontWeight: '500' },
-    catTextActive: { color: '#111827', fontWeight: '700' },
-    switchRow: {
+    catChipActive: { backgroundColor: '#0f172a', borderColor: '#0f172a' },
+    catChipLabel: { color: '#64748b', fontSize: 13, fontWeight: '700' },
+    catChipLabelActive: { color: '#ffffff' },
+    availabilityRow: {
         flexDirection: 'row', alignItems: 'center',
-        justifyContent: 'space-between', marginBottom: 16,
-        backgroundColor: '#ffffff', padding: 16, borderRadius: 14,
-        borderWidth: 1, borderColor: '#e5e7eb'
+        justifyContent: 'space-between', marginBottom: 24,
+        backgroundColor: '#f8fafc', padding: 20, borderRadius: 20,
+        borderWidth: 1, borderColor: '#f1f5f9'
     },
-    button: {
-        backgroundColor: '#111827', borderRadius: 16,
-        padding: 16, alignItems: 'center', marginTop: 16,
+    saveListingBtn: {
+        backgroundColor: '#0f172a', borderRadius: 20,
+        padding: 18, alignItems: 'center', marginTop: 20,
+        shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1, shadowRadius: 8, elevation: 3,
     },
-    buttonText: { color: '#ffffff', fontWeight: 'bold', fontSize: 16, letterSpacing: 0.5 },
-    labelRow: {
+    saveListingBtnText: { color: '#ffffff', fontWeight: '900', fontSize: 16, letterSpacing: 0.5 },
+    labelActionRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 8,
-        marginTop: 4,
+        marginBottom: 10,
     },
-    aiBtn: {
-        backgroundColor: '#f3f4f6',
-        paddingHorizontal: 10,
-        paddingVertical: 4,
+    aiActionBtn: {
+        backgroundColor: '#f8fafc',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
         borderRadius: 12,
         borderWidth: 1,
-        borderColor: '#e5e7eb',
+        borderColor: '#e2e8f0',
     },
-    aiBtnText: {
-        color: '#111827',
-        fontSize: 12,
-        fontWeight: 'bold',
+    aiActionText: {
+        color: '#0f172a',
+        fontSize: 11,
+        fontWeight: '900',
+        textTransform: 'uppercase',
+        letterSpacing: 0.5
     }
 });

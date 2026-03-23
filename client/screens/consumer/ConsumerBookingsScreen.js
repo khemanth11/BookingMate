@@ -56,25 +56,82 @@ export default function ConsumerBookingsScreen() {
             fetchBookings();
         });
         return unsubscribe;
-    }, [navigation, fetchBookings]);
+    }, [fetchBookings]);
+
+    const handleCancel = async (bookingId) => {
+        Alert.alert(
+            'Cancel Booking?',
+            'Are you sure you want to cancel this booking request?',
+            [
+                { text: 'No', style: 'cancel' },
+                {
+                    text: 'Yes, Cancel',
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            const token = await AsyncStorage.getItem('token');
+                            await axios.put(`${API_URL}/${bookingId}/cancel`, {}, {
+                                headers: { 'x-auth-token': token }
+                            });
+                            Alert.alert('Success', 'Booking has been cancelled.');
+                            fetchBookings();
+                        } catch (error) {
+                            Alert.alert('Error', error.response?.data?.message || 'Failed to cancel booking.');
+                        }
+                    }
+                }
+            ]
+        );
+    };
+
+    const handleVerifyCompletion = async (bookingId) => {
+        Alert.alert(
+            'Confirm Completion?',
+            'By verifying, you confirm the service is complete and the funds will be released to the provider.',
+            [
+                { text: 'Wait', style: 'cancel' },
+                {
+                    text: 'Verify & Release',
+                    style: 'default',
+                    onPress: async () => {
+                        try {
+                            const token = await AsyncStorage.getItem('token');
+                            await axios.put(`${API_URL}/${bookingId}/consumer-verify`, {}, {
+                                headers: { 'x-auth-token': token }
+                            });
+                            Alert.alert('Success', 'Verification complete! Funds have been released.');
+                            fetchBookings();
+                        } catch (error) {
+                            Alert.alert('Error', 'Failed to verify completion.');
+                        }
+                    }
+                }
+            ]
+        );
+    };
 
     const renderItem = ({ item }) => {
-        const getStatusColor = () => {
+        const getStatusStyles = () => {
             switch (item.status) {
-                case 'confirmed': return '#1a472a'; // Green
+                case 'confirmed': return { bg: '#dcfce7', text: '#166534' };
                 case 'cancelled':
-                case 'rejected': return '#5e1a1a'; // Dark Red
-                case 'completed': return '#0f3460'; // Blue
-                default: return '#b8860b'; // Yellow for Pending
+                case 'rejected': return { bg: '#fee2e2', text: '#991b1b' };
+                case 'completed': return { bg: '#eff6ff', text: '#1e40af' }; // Blue for AI verified
+                case 'verified': return { bg: '#dcfce7', text: '#166534' }; // Green for both verified
+                default: return { bg: '#fef3c7', text: '#92400e' }; // Pending
             }
         };
 
+        const statusStyle = getStatusStyles();
+
         return (
-            <View style={styles.card}>
+            <View style={styles.bookingCard}>
                 <View style={styles.cardHeader}>
                     <Text style={styles.cardTitle}>{item.listingId?.name || 'Unknown Service'}</Text>
-                    <View style={[styles.badge, { backgroundColor: getStatusColor() }]}>
-                        <Text style={styles.badgeText}>{item.status.toUpperCase()}</Text>
+                    <View style={[styles.statusBadge, { backgroundColor: statusStyle.bg }]}>
+                        <Text style={[styles.statusBadgeText, { color: statusStyle.text }]}>
+                            ● {item.status.toUpperCase()}
+                        </Text>
                     </View>
                 </View>
 
@@ -94,7 +151,7 @@ export default function ConsumerBookingsScreen() {
                 )}
                 {item.status === 'confirmed' && (
                     <TouchableOpacity
-                        style={styles.chatBtn}
+                        style={styles.chatActionBtn}
                         onPress={() => navigation.navigate('ChatScreen', {
                             bookingId: item._id,
                             receiverName: item.providerId?.name || 'Provider',
@@ -102,12 +159,50 @@ export default function ConsumerBookingsScreen() {
                             senderId: user?.id
                         })}
                     >
-                        <Text style={styles.chatBtnText}>💬 Open Chat & Call</Text>
+                        <Text style={styles.chatActionBtnText}>💬 Chat with Provider</Text>
                     </TouchableOpacity>
+                )}
+                {(item.status === 'pending' || item.status === 'confirmed') && (
+                    <TouchableOpacity
+                        style={styles.cancelActionBtn}
+                        onPress={() => handleCancel(item._id)}
+                    >
+                        <Text style={styles.cancelActionBtnText}>✕ Cancel Request</Text>
+                    </TouchableOpacity>
+                )}
+
+                {item.status === 'completed' && !item.consumerVerified && (
+                    <TouchableOpacity
+                        style={styles.verifyActionBtn}
+                        onPress={() => handleVerifyCompletion(item._id)}
+                    >
+                        <Text style={styles.verifyActionBtnText}>✅ Verify & Release Funds</Text>
+                    </TouchableOpacity>
+                )}
+
+                {item.payoutReleased && (
+                    <View style={styles.payoutBadge}>
+                        <Text style={styles.payoutText}>💰 Funds Released to Provider</Text>
+                    </View>
+                )}
+
+                {item.status === 'completed' && !item.consumerVerified && (
+                    <TouchableOpacity
+                        style={styles.verifyActionBtn}
+                        onPress={() => handleVerifyCompletion(item._id)}
+                    >
+                        <Text style={styles.verifyActionBtnText}>✅ Verify & Release Funds</Text>
+                    </TouchableOpacity>
+                )}
+
+                {item.payoutReleased && (
+                    <View style={styles.payoutBadge}>
+                        <Text style={styles.payoutText}>💰 Funds Released to Provider</Text>
+                    </View>
                 )}
                 {item.status === 'completed' && !reviewedBookings[item._id] && (
                     <TouchableOpacity
-                        style={styles.reviewBtn}
+                        style={styles.reviewActionBtn}
                         onPress={() => {
                             setReviewBookingId(item._id);
                             setReviewRating(0);
@@ -115,11 +210,13 @@ export default function ConsumerBookingsScreen() {
                             setReviewModalVisible(true);
                         }}
                     >
-                        <Text style={styles.reviewBtnText}>⭐ Write a Review</Text>
+                        <Text style={styles.reviewActionBtnText}>⭐ Write a Review</Text>
                     </TouchableOpacity>
                 )}
                 {item.status === 'completed' && reviewedBookings[item._id] && (
-                    <Text style={styles.reviewedLabel}>✅ You reviewed this booking</Text>
+                    <View style={styles.reviewedTag}>
+                        <Text style={styles.reviewedTagText}>✅ Reviewed</Text>
+                    </View>
                 )}
             </View>
         );
@@ -236,15 +333,20 @@ const styles = StyleSheet.create({
         borderColor: '#e5e7eb',
     },
     backIcon: { color: '#111827', fontSize: 18, fontWeight: 'bold' },
-    headerTitle: { color: '#111827', fontSize: 26, fontWeight: '800', letterSpacing: -0.5 },
-    headerSub: { color: '#6b7280', fontSize: 14, marginTop: 4, fontWeight: '500' },
-    card: {
+    headerTitle: { color: '#0f172a', fontSize: 28, fontWeight: '900', letterSpacing: -0.8 },
+    headerSub: { color: '#64748b', fontSize: 15, marginTop: 2, fontWeight: '600' },
+    bookingCard: {
         backgroundColor: '#ffffff',
-        borderRadius: 20,
-        padding: 20,
-        marginBottom: 16,
+        borderRadius: 24,
+        padding: 24,
+        marginBottom: 20,
         borderWidth: 1,
-        borderColor: '#e5e7eb',
+        borderColor: '#e2e8f0',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.05,
+        shadowRadius: 10,
+        elevation: 2,
     },
     cardHeader: {
         flexDirection: 'row',
@@ -252,19 +354,19 @@ const styles = StyleSheet.create({
         alignItems: 'flex-start',
         marginBottom: 16,
     },
-    cardTitle: { color: '#111827', fontSize: 18, fontWeight: 'bold', flex: 1, marginRight: 10 },
-    badge: { borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6 },
-    badgeText: { color: '#ffffff', fontSize: 11, fontWeight: 'bold', letterSpacing: 0.5 },
-    cardInfo: { color: '#6b7280', fontSize: 14, marginBottom: 8, fontWeight: '500' },
+    cardTitle: { color: '#0f172a', fontSize: 20, fontWeight: '800', flex: 1, marginRight: 10, letterSpacing: -0.3 },
+    statusBadge: { borderRadius: 12, paddingHorizontal: 12, paddingVertical: 6 },
+    statusBadgeText: { fontSize: 11, fontWeight: '900', letterSpacing: 0.5 },
+    cardInfo: { color: '#64748b', fontSize: 15, marginBottom: 10, fontWeight: '600' },
     verifiedBadge: {
-        backgroundColor: '#ecfdf5',
-        paddingHorizontal: 10,
-        paddingVertical: 4,
-        borderRadius: 8,
+        backgroundColor: '#f0fdfa',
+        paddingHorizontal: 12,
+        paddingVertical: 5,
+        borderRadius: 10,
         alignSelf: 'flex-start',
-        marginBottom: 12,
+        marginBottom: 16,
         borderWidth: 1,
-        borderColor: '#10b981',
+        borderColor: '#5eead4',
     },
     verifiedText: {
         color: '#059669',
@@ -272,47 +374,94 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
     },
     statusMsg: {
-        marginTop: 12,
-        paddingTop: 12,
-        borderTopWidth: 1,
-        borderTopColor: '#e5e7eb',
-        color: '#b07d00',
-        fontSize: 13,
-        fontStyle: 'italic',
-        fontWeight: '500',
-    },
-    chatBtn: {
         marginTop: 16,
-        backgroundColor: '#111827',
-        paddingVertical: 14,
-        borderRadius: 12,
+        paddingTop: 16,
+        borderTopWidth: 1,
+        borderTopColor: '#f1f5f9',
+        color: '#92400e',
+        fontSize: 14,
+        fontStyle: 'italic',
+        fontWeight: '600',
+    },
+    chatActionBtn: {
+        marginTop: 20,
+        backgroundColor: '#0f172a',
+        paddingVertical: 16,
+        borderRadius: 16,
         alignItems: 'center',
     },
-    chatBtnText: {
+    cancelActionBtnText: {
+        color: '#ef4444',
+        fontWeight: '700',
+        fontSize: 15,
+    },
+    chatActionBtnText: {
         color: '#ffffff',
-        fontWeight: 'bold',
-        fontSize: 15
+        fontWeight: '900',
+        fontSize: 16
     },
     emptyContainer: { alignItems: 'center', marginTop: 80, paddingHorizontal: 20 },
     emptyIcon: { fontSize: 50, marginBottom: 16 },
     emptyText: { color: '#111827', fontSize: 22, fontWeight: '800' },
     emptyHint: { color: '#6b7280', fontSize: 15, marginTop: 10, textAlign: 'center', lineHeight: 22 },
-    reviewBtn: {
-        marginTop: 12,
+    reviewActionBtn: {
+        marginTop: 16,
         backgroundColor: '#fef3c7',
-        paddingVertical: 12,
-        borderRadius: 12,
+        paddingVertical: 14,
+        borderRadius: 16,
         alignItems: 'center',
         borderWidth: 1,
         borderColor: '#f59e0b',
     },
-    reviewBtnText: { color: '#92400e', fontWeight: 'bold', fontSize: 15 },
-    reviewedLabel: {
+    reviewActionBtnText: { color: '#92400e', fontWeight: '800', fontSize: 16 },
+    reviewedTag: {
         marginTop: 12,
-        color: '#059669',
-        fontWeight: '600',
+        backgroundColor: '#f1f5f9',
+        paddingVertical: 8,
+        paddingHorizontal: 12,
+        borderRadius: 10,
+        alignSelf: 'flex-start',
+    },
+    reviewedTagText: {
+        color: '#64748b',
+        fontWeight: '700',
         fontSize: 13,
-        fontStyle: 'italic',
+    },
+    cancelActionBtnText: {
+        color: '#ef4444',
+        fontWeight: '700',
+        fontSize: 15,
+    },
+    verifyActionBtn: {
+        marginTop: 20,
+        backgroundColor: '#16a34a',
+        paddingVertical: 16,
+        borderRadius: 16,
+        alignItems: 'center',
+        shadowColor: '#16a34a',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
+        elevation: 4,
+    },
+    verifyActionBtnText: {
+        color: '#ffffff',
+        fontWeight: '900',
+        fontSize: 16
+    },
+    payoutBadge: {
+        backgroundColor: '#f0fdf4',
+        padding: 12,
+        borderRadius: 14,
+        marginTop: 16,
+        borderWidth: 1,
+        borderColor: '#dcfce7',
+        alignItems: 'center'
+    },
+    payoutText: {
+        color: '#166534',
+        fontWeight: '800',
+        fontSize: 13
     },
     modalOverlay: {
         flex: 1,

@@ -12,6 +12,7 @@ export default function CategoryListingScreen({ route, navigation }) {
     const { category } = route.params;
     const [listings, setListings] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [favoriteIds, setFavoriteIds] = useState([]);
 
     useEffect(() => {
         const fetchListings = async () => {
@@ -32,6 +33,40 @@ export default function CategoryListingScreen({ route, navigation }) {
         fetchListings();
     }, [category.name]);
 
+    const fetchFavorites = async () => {
+        try {
+            const token = await AsyncStorage.getItem('token');
+            if (!token) return;
+            const res = await axios.get('http://10.113.112.195:5000/api/auth/favorites', {
+                headers: { 'x-auth-token': token }
+            });
+            setFavoriteIds(res.data.map(f => f._id || f));
+        } catch (err) { /* ignore */ }
+    };
+
+    useEffect(() => {
+        const unsubscribe = navigation.addListener('focus', () => {
+            fetchFavorites();
+        });
+        return unsubscribe;
+    }, [navigation]);
+
+    const handleToggleFavorite = async (listingId) => {
+        try {
+            const token = await AsyncStorage.getItem('token');
+            if (!token) {
+                Alert.alert('Error', 'Please log in to favorite services.');
+                return;
+            }
+            const res = await axios.post(`http://10.113.112.195:5000/api/auth/favorites/${listingId}`, {}, {
+                headers: { 'x-auth-token': token }
+            });
+            setFavoriteIds(res.data);
+        } catch (err) {
+            console.error('Toggle Favorite Error:', err);
+        }
+    };
+
     return (
         <SafeAreaView style={styles.container}>
             <StatusBar barStyle="dark-content" backgroundColor="#f5f6f8" />
@@ -41,47 +76,54 @@ export default function CategoryListingScreen({ route, navigation }) {
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
                     <Text style={styles.backIcon}>←</Text>
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>
-                    {category.name}
-                </Text>
+                <View>
+                    <Text style={styles.headerTitle}>{category.name}</Text>
+                    <Text style={styles.headerSub}>{listings.length} professionals available</Text>
+                </View>
             </View>
 
             {isLoading ? (
                 <ActivityIndicator size="large" color="#1c3144" style={{ marginTop: 50 }} />
             ) : (
-                <>
-                    <View style={styles.sectionHeader}>
-                        <Text style={styles.resultCount}>{listings.length} professionals available</Text>
-                    </View>
 
                     <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
                         {listings.map((item) => (
                             <TouchableOpacity
                                 key={item._id || item.id}
-                                style={styles.card}
+                                style={styles.listingCard}
                                 onPress={() => navigation.navigate('ListingDetail', { listing: item, category })}
                             >
-                                <View style={styles.cardTop}>
-                                    <View style={[styles.iconCircle]}>
-                                        <Text style={styles.itemIcon}>{category.icon}</Text>
-                                    </View>
-                                    <View style={styles.cardInfo}>
+                                <View style={styles.cardHeader}>
+                                    <View style={styles.cardLeft}>
                                         <Text style={styles.itemName}>{item.name}</Text>
-                                        <Text style={styles.itemLocation}>👤 {item.providerId?.name || 'Local Provider'}</Text>
-                                    </View>
-                                    <View style={styles.priceBox}>
-                                        <Text style={styles.price}>₹{item.price}</Text>
-                                        <View style={[styles.badge, { backgroundColor: item.available ? '#a4c3b2' : '#e5989b' }]}>
-                                            <Text style={[styles.badgeText, { color: item.available ? '#1b4332' : '#5c1b1b' }]}>
-                                                {item.available ? 'Available' : 'Busy'}
-                                            </Text>
+                                        <View style={styles.providerTag}>
+                                            <Text style={styles.providerText}>👤 {item.providerId?.name || 'Expert'}</Text>
+                                            {item.providerId?.isVerified && <Text style={styles.verifiedIcon}>✅</Text>}
                                         </View>
+                                    </View>
+                                    <TouchableOpacity 
+                                        onPress={() => handleToggleFavorite(item._id || item.id)}
+                                        style={styles.favAction}
+                                    >
+                                        <Text style={styles.favIcon}>
+                                            {favoriteIds.includes(item._id || item.id) ? '❤️' : '🤍'}
+                                        </Text>
+                                    </TouchableOpacity>
+                                </View>
+
+                                <View style={styles.cardFooter}>
+                                    <View style={styles.priceBadge}>
+                                        <Text style={styles.priceText}>₹{item.price}</Text>
+                                    </View>
+                                    <View style={[styles.statusBadge, { backgroundColor: item.available ? '#dcfce7' : '#fee2e2' }]}>
+                                        <Text style={[styles.statusBadgeText, { color: item.available ? '#166534' : '#991b1b' }]}>
+                                            {item.available ? '● Available' : '● Busy'}
+                                        </Text>
                                     </View>
                                 </View>
                             </TouchableOpacity>
                         ))}
                     </ScrollView>
-                </>
             )}
         </SafeAreaView>
     );
@@ -112,12 +154,8 @@ const styles = StyleSheet.create({
         fontSize: 18,
         fontWeight: 'bold',
     },
-    headerTitle: {
-        color: '#111827',
-        fontSize: 26,
-        fontWeight: '800',
-        letterSpacing: -0.5,
-    },
+    headerTitle: { color: '#0f172a', fontSize: 28, fontWeight: '900', letterSpacing: -0.8 },
+    headerSub: { color: '#64748b', fontSize: 15, marginTop: 2, fontWeight: '600' },
     sectionHeader: {
         marginBottom: 20,
     },
@@ -129,65 +167,83 @@ const styles = StyleSheet.create({
     scrollContent: {
         paddingBottom: 40,
     },
-    card: {
+    listingCard: {
         backgroundColor: '#ffffff',
-        borderRadius: 20,
-        padding: 16,
-        marginBottom: 16,
+        borderRadius: 24,
+        padding: 24,
+        marginBottom: 20,
         borderWidth: 1,
-        borderColor: '#e5e7eb',
+        borderColor: '#e2e8f0',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.05,
+        shadowRadius: 10,
+        elevation: 2,
     },
-    cardTop: {
+    cardHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        marginBottom: 20,
+    },
+    cardLeft: { flex: 1 },
+    itemName: {
+        color: '#0f172a',
+        fontWeight: '800',
+        fontSize: 20,
+        marginBottom: 6,
+        letterSpacing: -0.4,
+    },
+    providerTag: {
         flexDirection: 'row',
         alignItems: 'center',
     },
-    iconCircle: {
-        backgroundColor: '#f3f4f6',
-        borderRadius: 16,
-        width: 60,
-        height: 60,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: 16,
-    },
-    itemIcon: {
-        fontSize: 30,
-    },
-    cardInfo: {
-        flex: 1,
-        justifyContent: 'center',
-    },
-    itemName: {
-        color: '#111827',
-        fontWeight: '700',
-        fontSize: 17,
-        marginBottom: 4,
-        letterSpacing: 0.2,
-    },
-    itemLocation: {
-        color: '#6b7280',
+    providerText: {
+        color: '#64748b',
         fontSize: 14,
-        fontWeight: '500',
+        fontWeight: '600',
     },
-    priceBox: {
-        alignItems: 'flex-end',
-        justifyContent: 'center',
+    verifiedIcon: {
+        marginLeft: 4,
+        fontSize: 12,
     },
-    price: {
-        color: '#111827',
-        fontWeight: '800',
+    favAction: {
+        padding: 8,
+        backgroundColor: '#f8fafc',
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: '#f1f5f9',
+    },
+    favIcon: {
         fontSize: 18,
-        marginBottom: 8,
     },
-    badge: {
-        borderRadius: 10,
+    cardFooter: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingTop: 16,
+        borderTopWidth: 1,
+        borderTopColor: '#f1f5f9',
+    },
+    priceBadge: {
+        backgroundColor: '#f1f5f9',
         paddingHorizontal: 10,
+        paddingVertical: 5,
+        borderRadius: 10,
+    },
+    priceText: {
+        color: '#0f172a',
+        fontWeight: '900',
+        fontSize: 18,
+    },
+    statusBadge: {
+        borderRadius: 12,
+        paddingHorizontal: 12,
         paddingVertical: 6,
     },
-    badgeText: {
+    statusBadgeText: {
         fontSize: 11,
-        fontWeight: 'bold',
+        fontWeight: '900',
         letterSpacing: 0.5,
-        textTransform: 'uppercase',
     },
 });

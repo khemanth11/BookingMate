@@ -40,6 +40,18 @@ const userSchema = new mongoose.Schema({
         type: Number,
         default: 0
     },
+    isVerified: {
+        type: Boolean,
+        default: false
+    },
+    expoPushToken: {
+        type: String,
+        default: null
+    },
+    favorites: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Listing'
+    }],
     createdAt: {
         type: Date,
         default: Date.now

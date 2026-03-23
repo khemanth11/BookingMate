@@ -45,6 +45,23 @@ const bookingSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
+    paymentStatus: {
+        type: String,
+        enum: ['unpaid', 'paid', 'refunded'],
+        default: 'unpaid'
+    },
+    razorpayOrderId: { type: String },
+    razorpayPaymentId: { type: String },
+    razorpaySignature: { type: String },
+
+    // Dual Verification
+    consumerVerified: { type: Boolean, default: false },
+    providerVerified: { type: Boolean, default: false }, // AI verification
+    payoutReleased: { type: Boolean, default: false },
+    amountPaid: {
+        type: Number,
+        default: 0
+    },
     createdAt: {
         type: Date,
         default: Date.now

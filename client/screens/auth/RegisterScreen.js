@@ -6,13 +6,37 @@ import {
 } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
 
+import { Alert, ActivityIndicator } from 'react-native';
+import axios from 'axios';
+
 export default function RegisterScreen({ navigation }) {
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [phone, setPhone] = useState('');
     const [password, setPassword] = useState('');
     const [role, setRole] = useState('consumer');
+    const [isLoading, setIsLoading] = useState(false);
     const { register } = useAuth();
+
+    const handleRegister = async () => {
+        if (!name || !email || !phone || !password) {
+            Alert.alert('Error', 'Please fill all fields');
+            return;
+        }
+
+        setIsLoading(true);
+        try {
+            const result = await register(name, email, phone, password, role);
+            if (result && result.success) {
+                Alert.alert('Registration successful!', 'Please log in to continue.');
+                navigation.replace('Login');
+            }
+        } catch (err) {
+            Alert.alert('Registration Failed', err.response?.data?.message || err.message || 'Check your connection.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     return (
         <KeyboardAvoidingView
@@ -23,13 +47,13 @@ export default function RegisterScreen({ navigation }) {
             <ScrollView showsVerticalScrollIndicator={false}>
 
                 <View style={styles.header}>
-                    <Text style={styles.appName}>🌾 EverythingBooking</Text>
-                    <Text style={styles.tagline}>Your village, connected</Text>
+                    <Text style={styles.appName}>EverythingBooking</Text>
+                    <Text style={styles.tagline}>Excellence in every reservation</Text>
                 </View>
 
-                <View style={styles.card}>
+                <View style={styles.authCard}>
                     <Text style={styles.title}>Create Account</Text>
-                    <Text style={styles.subtitle}>Join your village network</Text>
+                    <Text style={styles.subtitle}>Join our premium service network</Text>
 
                     <Text style={styles.roleLabel}>I am a:</Text>
                     <View style={styles.roleContainer}>
@@ -52,7 +76,7 @@ export default function RegisterScreen({ navigation }) {
                             <Text style={[styles.roleText, role === 'provider' && styles.roleTextActive]}>
                                 Provider
                             </Text>
-                            <Text style={styles.roleDesc}>I offer services</Text>
+                            <Text style={styles.roleDescText}>Professional expert</Text>
                         </TouchableOpacity>
                     </View>
 
@@ -92,27 +116,21 @@ export default function RegisterScreen({ navigation }) {
                         onChangeText={setPassword}
                     />
 
-                    <TouchableOpacity style={styles.button} onPress={async () => {
-                        if (!name || !email || !phone || !password) {
-                            alert('Please fill all fields');
-                            return;
-                        }
-                        try {
-                            const result = await register(name, email, phone, password, role);
-                            if (result && result.success) {
-                                alert('Registration successful! Please log in to continue.');
-                                navigation.replace('Login');
-                            }
-                        } catch (err) {
-                            alert('Unexpected error: ' + (err.message || 'Check your connection.'));
-                        }
-                    }}>
-                        <Text style={styles.buttonText}>Create Account</Text>
+                    <TouchableOpacity 
+                        style={[styles.registerBtn, isLoading && { opacity: 0.7 }]} 
+                        onPress={handleRegister}
+                        disabled={isLoading}
+                    >
+                        {isLoading ? (
+                            <ActivityIndicator color="#ffffff" />
+                        ) : (
+                            <Text style={styles.registerBtnText}>Create Account</Text>
+                        )}
                     </TouchableOpacity>
 
                     <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-                        <Text style={styles.linkText}>
-                            Already have an account? <Text style={styles.link}>Login</Text>
+                        <Text style={styles.footerTextText}>
+                            Already a member? <Text style={styles.footerLinkText}>Login here</Text>
                         </Text>
                     </TouchableOpacity>
                 </View>
@@ -130,39 +148,47 @@ const styles = StyleSheet.create({
     },
     header: {
         alignItems: 'center',
-        marginTop: 48,
-        marginBottom: 32,
+        marginTop: 60,
+        marginBottom: 40,
     },
     appName: {
-        fontSize: 32,
-        fontWeight: '800',
-        color: '#111827',
-        letterSpacing: -0.5,
+        fontSize: 36,
+        fontWeight: '900',
+        color: '#0f172a',
+        letterSpacing: -1.5,
     },
     tagline: {
-        color: '#6b7280',
-        fontSize: 15,
-        marginTop: 6,
-        fontWeight: '500',
+        color: '#64748b',
+        fontSize: 16,
+        marginTop: 4,
+        fontWeight: '600',
+        letterSpacing: 0.2,
     },
-    card: {
+    authCard: {
         backgroundColor: '#ffffff',
-        borderRadius: 24,
-        padding: 24,
+        borderRadius: 32,
+        padding: 32,
         marginBottom: 40,
         borderWidth: 1,
-        borderColor: '#e5e7eb',
+        borderColor: '#e2e8f0',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.1,
+        shadowRadius: 20,
+        elevation: 5,
     },
     title: {
-        fontSize: 26,
-        fontWeight: 'bold',
-        color: '#111827',
+        fontSize: 28,
+        fontWeight: '900',
+        color: '#0f172a',
         marginBottom: 6,
+        letterSpacing: -0.6,
     },
     subtitle: {
-        color: '#6b7280',
+        color: '#64748b',
         fontSize: 15,
-        marginBottom: 24,
+        marginBottom: 28,
+        fontWeight: '500',
     },
     roleLabel: {
         color: '#111827',
@@ -180,67 +206,76 @@ const styles = StyleSheet.create({
     roleBtn: {
         flex: 1,
         backgroundColor: '#ffffff',
-        borderRadius: 16,
-        padding: 16,
+        borderRadius: 20,
+        padding: 20,
         alignItems: 'center',
         borderWidth: 1,
-        borderColor: '#e5e7eb',
+        borderColor: '#e2e8f0',
     },
     roleActive: {
-        borderColor: '#111827',
-        backgroundColor: '#f3f4f6',
+        borderColor: '#0f172a',
+        backgroundColor: '#f8fafc',
+        borderWidth: 2,
     },
-    roleIcon: {
+    roleIconText: {
         fontSize: 28,
         marginBottom: 8,
     },
     roleText: {
-        color: '#6b7280',
-        fontWeight: '600',
-        fontSize: 15,
+        color: '#64748b',
+        fontWeight: '700',
+        fontSize: 14,
     },
     roleTextActive: {
-        color: '#111827',
-        fontWeight: 'bold',
+        color: '#0f172a',
+        fontWeight: '900',
     },
-    roleDesc: {
-        color: '#9ca3af',
-        fontSize: 12,
+    roleDescText: {
+        color: '#94a3b8',
+        fontSize: 11,
         marginTop: 4,
         textAlign: 'center',
+        fontWeight: '600',
     },
     input: {
-        backgroundColor: '#ffffff',
-        color: '#111827',
-        borderRadius: 16,
-        paddingHorizontal: 16,
-        paddingVertical: 14,
+        backgroundColor: '#f8fafc',
+        color: '#0f172a',
+        borderRadius: 20,
+        paddingHorizontal: 20,
+        paddingVertical: 16,
         marginBottom: 16,
         fontSize: 16,
         borderWidth: 1,
-        borderColor: '#e5e7eb',
+        borderColor: '#f1f5f9',
+        fontWeight: '500',
     },
-    button: {
-        backgroundColor: '#111827',
-        borderRadius: 16,
-        padding: 16,
+    registerBtn: {
+        backgroundColor: '#0f172a',
+        borderRadius: 20,
+        padding: 18,
         alignItems: 'center',
-        marginTop: 8,
-        marginBottom: 20,
+        marginTop: 12,
+        marginBottom: 24,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 3,
     },
-    buttonText: {
+    registerBtnText: {
         color: '#ffffff',
-        fontWeight: 'bold',
+        fontWeight: '900',
         fontSize: 16,
         letterSpacing: 0.5,
     },
-    linkText: {
-        color: '#6b7280',
+    footerTextText: {
+        color: '#64748b',
         textAlign: 'center',
         fontSize: 15,
+        fontWeight: '500',
     },
-    link: {
-        color: '#111827',
-        fontWeight: 'bold',
+    footerLinkText: {
+        color: '#0f172a',
+        fontWeight: '800',
     },
 });

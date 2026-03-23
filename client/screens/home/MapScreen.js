@@ -58,7 +58,10 @@ export default function MapScreen() {
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
                     <Text style={styles.backIcon}>←</Text>
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Explore Map</Text>
+                <View>
+                    <Text style={styles.headerTitle}>Explore Map</Text>
+                    <Text style={styles.headerSub}>Services near you</Text>
+                </View>
             </View>
 
             {isLoading ? (
@@ -107,26 +110,32 @@ const styles = StyleSheet.create({
     },
     header: {
         position: 'absolute',
-        top: 50, // Avoid safe area
+        top: 60,
         left: 20,
         right: 20,
         zIndex: 10,
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: 'rgba(255, 255, 255, 0.95)',
-        padding: 12,
-        borderRadius: 16,
+        backgroundColor: 'rgba(255, 255, 255, 0.98)',
+        padding: 16,
+        borderRadius: 24,
         borderWidth: 1,
-        borderColor: '#e5e7eb',
+        borderColor: '#e2e8f0',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.1,
+        shadowRadius: 20,
+        elevation: 5,
     },
     backBtn: {
         marginRight: 16,
-        padding: 8,
-        backgroundColor: '#f3f4f6',
-        borderRadius: 12,
+        padding: 10,
+        backgroundColor: '#f1f5f9',
+        borderRadius: 14,
     },
-    backIcon: { color: '#111827', fontSize: 18, fontWeight: 'bold' },
-    headerTitle: { color: '#111827', fontSize: 20, fontWeight: '800' },
+    backIcon: { color: '#0f172a', fontSize: 18, fontWeight: 'bold' },
+    headerTitle: { color: '#0f172a', fontSize: 22, fontWeight: '900', letterSpacing: -0.6 },
+    headerSub: { color: '#64748b', fontSize: 13, fontWeight: '600', marginTop: -2 },
     loadingContainer: {
         flex: 1,
         justifyContent: 'center',
@@ -143,22 +152,22 @@ const styles = StyleSheet.create({
     },
     calloutContainer: {
         backgroundColor: '#ffffff',
-        borderRadius: 12,
-        padding: 16,
-        minWidth: 200,
+        borderRadius: 20,
+        padding: 20,
+        minWidth: 220,
         borderWidth: 1,
-        borderColor: '#e5e7eb',
+        borderColor: '#e2e8f0',
     },
-    calloutTitle: { color: '#111827', fontSize: 16, fontWeight: 'bold', marginBottom: 4 },
-    calloutCategory: { color: '#6b7280', fontSize: 13, marginBottom: 12 },
+    calloutTitle: { color: '#0f172a', fontSize: 18, fontWeight: '800', marginBottom: 4, letterSpacing: -0.4 },
+    calloutCategory: { color: '#64748b', fontSize: 13, marginBottom: 16, fontWeight: '600' },
     priceRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
         borderTopWidth: 1,
-        borderTopColor: '#e5e7eb',
-        paddingTop: 12,
+        borderTopColor: '#f1f5f9',
+        paddingTop: 16,
     },
-    calloutPrice: { color: '#111827', fontSize: 16, fontWeight: '800' },
-    linkText: { color: '#111827', fontSize: 12, fontWeight: '700' }
+    calloutPrice: { color: '#0f172a', fontSize: 18, fontWeight: '900' },
+    linkText: { color: '#3b82f6', fontSize: 13, fontWeight: '700' }
 });

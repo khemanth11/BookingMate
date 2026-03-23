@@ -60,12 +60,14 @@ export default function ProfileScreen({ route, navigation }) {
         <SafeAreaView style={styles.container}>
             <StatusBar barStyle="dark-content" backgroundColor="#f5f6f8" />
 
-            {/* Header */}
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
                     <Text style={styles.backIcon}>←</Text>
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Provider Profile</Text>
+                <View>
+                    <Text style={styles.headerTitle}>Professional Profile</Text>
+                    <Text style={styles.headerSub}>Detailed expert information</Text>
+                </View>
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
@@ -77,7 +79,10 @@ export default function ProfileScreen({ route, navigation }) {
                             {(profile?.name || 'P').charAt(0).toUpperCase()}
                         </Text>
                     </View>
-                    <Text style={styles.profileName}>{profile?.name || providerName}</Text>
+                    <View style={styles.nameRow}>
+                        <Text style={styles.profileName}>{profile?.name || providerName}</Text>
+                        {profile?.isVerified && <Text style={styles.verifiedCheck}>✅</Text>}
+                    </View>
                     <Text style={styles.profileEmail}>{profile?.email || ''}</Text>
                     
                     {profile?.bio ? (
@@ -132,10 +137,12 @@ export default function ProfileScreen({ route, navigation }) {
                                     <Text style={styles.reviewStars}>{renderStars(review.rating)}</Text>
                                 </View>
                                 {review.reviewText ? (
-                                    <Text style={styles.reviewText}>{review.reviewText}</Text>
+                                    <Text style={styles.reviewText}>"{review.reviewText}"</Text>
                                 ) : null}
                                 {review.listingId?.name ? (
-                                    <Text style={styles.reviewListing}>For: {review.listingId.name}</Text>
+                                    <View style={styles.reviewListingTag}>
+                                        <Text style={styles.reviewListingText}>Service: {review.listingId.name}</Text>
+                                    </View>
                                 ) : null}
                             </View>
                         ))}
@@ -163,18 +170,23 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: '#e5e7eb',
     },
-    backIcon: { color: '#111827', fontSize: 18, fontWeight: 'bold' },
-    headerTitle: { color: '#111827', fontSize: 26, fontWeight: '800', letterSpacing: -0.5 },
+    headerTitle: { color: '#0f172a', fontSize: 28, fontWeight: '900', letterSpacing: -0.8 },
+    headerSub: { color: '#64748b', fontSize: 15, marginTop: 2, fontWeight: '600' },
 
     // Profile Card
     profileCard: {
         backgroundColor: '#ffffff',
         borderRadius: 24,
-        padding: 28,
+        padding: 32,
         alignItems: 'center',
         marginBottom: 24,
         borderWidth: 1,
-        borderColor: '#e5e7eb',
+        borderColor: '#e2e8f0',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.1,
+        shadowRadius: 20,
+        elevation: 5,
     },
     avatarCircle: {
         width: 80,
@@ -191,24 +203,35 @@ const styles = StyleSheet.create({
         fontWeight: '800',
     },
     profileName: {
-        color: '#111827',
-        fontSize: 24,
-        fontWeight: '800',
+        color: '#0f172a',
+        fontSize: 26,
+        fontWeight: '900',
+        marginBottom: 4,
+        letterSpacing: -0.5,
+    },
+    nameRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
         marginBottom: 4,
     },
+    verifiedCheck: {
+        marginLeft: 8,
+        fontSize: 20,
+    },
     profileEmail: {
-        color: '#6b7280',
-        fontSize: 14,
-        fontWeight: '500',
-        marginBottom: 12,
+        color: '#64748b',
+        fontSize: 15,
+        fontWeight: '600',
+        marginBottom: 16,
     },
     profileBio: {
-        color: '#4b5563',
+        color: '#334155',
         fontSize: 15,
         textAlign: 'center',
-        lineHeight: 22,
-        marginBottom: 16,
+        lineHeight: 24,
+        marginBottom: 20,
         paddingHorizontal: 10,
+        fontWeight: '500',
     },
     statsRow: {
         flexDirection: 'row',
@@ -216,56 +239,63 @@ const styles = StyleSheet.create({
         width: '100%',
         justifyContent: 'space-around',
         alignItems: 'center',
-        paddingTop: 16,
+        paddingTop: 24,
         borderTopWidth: 1,
-        borderTopColor: '#e5e7eb',
+        borderTopColor: '#f1f5f9',
     },
     statItem: { alignItems: 'center' },
-    statValue: { color: '#111827', fontSize: 20, fontWeight: '800' },
-    statLabel: { color: '#6b7280', fontSize: 12, fontWeight: '600', marginTop: 4 },
-    statDivider: { width: 1, height: 30, backgroundColor: '#e5e7eb' },
+    statValue: { color: '#0f172a', fontSize: 22, fontWeight: '900' },
+    statLabel: { color: '#64748b', fontSize: 13, fontWeight: '700', marginTop: 4 },
+    statDivider: { width: 1, height: 32, backgroundColor: '#f1f5f9' },
 
     // Sections
     section: { marginBottom: 24 },
     sectionTitle: {
-        color: '#111827',
-        fontSize: 20,
-        fontWeight: '800',
+        color: '#0f172a',
+        fontSize: 22,
+        fontWeight: '900',
         marginBottom: 16,
-        letterSpacing: -0.3,
+        letterSpacing: -0.5,
     },
 
     // Listing Cards
     listingCard: {
         backgroundColor: '#ffffff',
-        borderRadius: 16,
-        padding: 16,
+        borderRadius: 20,
+        padding: 20,
         marginBottom: 12,
         borderWidth: 1,
-        borderColor: '#e5e7eb',
+        borderColor: '#e2e8f0',
     },
-    listingName: { color: '#111827', fontSize: 16, fontWeight: '700', marginBottom: 8 },
-    listingMeta: { flexDirection: 'row', justifyContent: 'space-between' },
-    listingCategory: { color: '#6b7280', fontSize: 13, fontWeight: '500' },
-    listingPrice: { color: '#111827', fontSize: 15, fontWeight: '800' },
+    listingName: { color: '#0f172a', fontSize: 18, fontWeight: '800', marginBottom: 8, letterSpacing: -0.3 },
+    listingMeta: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    listingCategory: { color: '#64748b', fontSize: 14, fontWeight: '600' },
+    listingPrice: { color: '#0f172a', fontSize: 16, fontWeight: '900' },
 
     // Review Cards
     reviewCard: {
         backgroundColor: '#ffffff',
-        borderRadius: 14,
-        padding: 16,
+        borderRadius: 20,
+        padding: 20,
         marginBottom: 12,
         borderWidth: 1,
-        borderColor: '#e5e7eb',
+        borderColor: '#e2e8f0',
     },
     reviewHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 8,
+        marginBottom: 12,
     },
-    reviewerName: { color: '#111827', fontSize: 14, fontWeight: '700' },
+    reviewerName: { color: '#0f172a', fontSize: 16, fontWeight: '800' },
     reviewStars: { color: '#f59e0b', fontSize: 16 },
-    reviewText: { color: '#6b7280', fontSize: 14, lineHeight: 20, marginBottom: 4 },
-    reviewListing: { color: '#9ca3af', fontSize: 12, fontStyle: 'italic' },
+    reviewText: { color: '#64748b', fontSize: 15, lineHeight: 22, marginBottom: 12, fontStyle: 'italic', fontWeight: '500' },
+    reviewListingTag: {
+        backgroundColor: '#f1f5f9',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 8,
+        alignSelf: 'flex-start',
+    },
+    reviewListingText: { color: '#64748b', fontSize: 12, fontWeight: '700' },
 });

@@ -8,7 +8,7 @@ const router = express.Router();
 // Register a new user
 router.post('/register', async (req, res) => {
     try {
-        const { name, email, phone, password, role } = req.body;
+        const { name, email, phone, password, role, expoPushToken } = req.body;
 
         // Check if user exists
         let user = await User.findOne({ email });
@@ -26,7 +26,8 @@ router.post('/register', async (req, res) => {
             email,
             phone,
             password: hashedPassword,
-            role: role || 'consumer'
+            role: role || 'consumer',
+            expoPushToken: expoPushToken || null
         });
 
         await user.save();
@@ -63,7 +64,7 @@ router.post('/register', async (req, res) => {
 // Login
 router.post('/login', async (req, res) => {
     try {
-        const { email, password } = req.body;
+        const { email, password, expoPushToken } = req.body;
 
         // Check if user exists
         let user = await User.findOne({ email });
@@ -75,6 +76,12 @@ router.post('/login', async (req, res) => {
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
             return res.status(400).json({ message: 'Invalid Credentials' });
+        }
+
+        // Update push token if provided
+        if (expoPushToken) {
+            user.expoPushToken = expoPushToken;
+            await user.save();
         }
 
         const payload = {
@@ -146,6 +153,41 @@ router.put('/profile', auth, async (req, res) => {
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server Error');
+    }
+});
+
+// Toggle Favorite
+router.post('/favorites/:id', auth, async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id);
+        const listingId = req.params.id;
+
+        const index = user.favorites.indexOf(listingId);
+        if (index === -1) {
+            user.favorites.push(listingId);
+        } else {
+            user.favorites.splice(index, 1);
+        }
+
+        await user.save();
+        res.json(user.favorites);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server error');
+    }
+});
+
+// Get Favorites
+router.get('/favorites', auth, async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id).populate({
+            path: 'favorites',
+            populate: { path: 'providerId', select: 'name isVerified' }
+        });
+        res.json(user.favorites);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server error');
     }
 });
 

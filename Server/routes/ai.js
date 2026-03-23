@@ -127,4 +127,41 @@ Answer with "YES" or "NO" followed by a brief one-line reason.`;
     }
 });
 
+// @route   POST /api/ai/suggest-price
+// @desc    Suggests a competitive price based on service details
+router.post('/suggest-price', async (req, res) => {
+    const groq = getGroqClient();
+    if (!groq) {
+        return res.status(503).json({ error: 'Groq Service unconfigured' });
+    }
+    try {
+        const { name, category, description } = req.body;
+
+        if (!name || !category) {
+            return res.status(400).json({ msg: 'Name and category are required for price suggestion.' });
+        }
+
+        const prompt = `You are a market expert for an Indian rural/village marketplace app called EverythingBooking.
+Suggest a competitive price for this service:
+Name: ${name}
+Category: ${category}
+Description: ${description || 'No description'}
+
+Rules:
+- Give a single realistic price in Indian Rupees (₹).
+- Format as: ₹[Amount]/[Unit] (e.g. ₹500/day, ₹200/visit, ₹100/kg).
+- Respond ONLY with the price string, nothing else.`;
+
+        const response = await groq.chat.completions.create({
+            model: "llama-3.3-70b-versatile",
+            messages: [{ role: "user", content: prompt }]
+        });
+
+        res.json({ suggestedPrice: response.choices[0].message.content.trim() });
+    } catch (err) {
+        console.error('Price Suggestion Error:', err.message);
+        res.status(500).json({ error: 'Server Error suggesting price' });
+    }
+});
+
 export default router;
