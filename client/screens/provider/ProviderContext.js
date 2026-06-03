@@ -6,7 +6,9 @@ import { Alert } from 'react-native';
 
 const ProviderContext = createContext();
 
-const API_URL = 'http://10.113.112.195:5000/api/listings';
+import { BASE_URL } from '../../utils/config';
+
+const API_URL = `${BASE_URL}/api/listings`;
 
 export const ProviderProvider = ({ children }) => {
     const [listings, setListings] = useState([]);

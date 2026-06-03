@@ -1,4 +1,5 @@
 import express from 'express';
+import mongoose from 'mongoose';
 import Booking from '../models/Booking.js';
 import Listing from '../models/Listing.js';
 import jwt from 'jsonwebtoken';
@@ -34,16 +35,18 @@ router.get('/stats', auth, async (req, res) => {
             return res.status(403).json({ message: 'Access denied. Only providers can view booking statistics.' });
         }
 
+        const providerId = new mongoose.Types.ObjectId(req.user.id);
+
         const stats = await Booking.aggregate([
             {
-                $match: { providerId: req.user.id }
+                $match: { providerId: providerId }
             },
             {
                 $group: {
                     _id: null,
                     totalBookings: { $sum: 1 },
                     completed: {
-                        $sum: { $cond: [{ $eq: ['$status', 'completed'] }, 1, 0] }
+                        $sum: { $cond: [{ $in: ['$status', ['completed', 'verified']] }, 1, 0] }
                     },
                     cancelled: {
                         $sum: { $cond: [{ $eq: ['$status', 'cancelled'] }, 1, 0] }
@@ -51,12 +54,6 @@ router.get('/stats', auth, async (req, res) => {
                     pending: {
                         $sum: { $cond: [{ $eq: ['$status', 'pending'] }, 1, 0] }
                     },
-                    // To calculate total earnings, we need to populate listing details first
-                    // This aggregation needs to be adjusted if 'price' is not directly on Booking
-                    // For now, assuming price is on the listing and we'd need a lookup.
-                    // For simplicity, if price is not directly on booking, this part might need a $lookup stage.
-                    // If 'price' is stored on the booking document itself after creation:
-                    // totalEarnings: { $sum: { $cond: [{ $eq: ['$status', 'completed'] }, '$price', 0] } }
                 }
             },
             {
@@ -66,16 +63,13 @@ router.get('/stats', auth, async (req, res) => {
                     completed: 1,
                     cancelled: 1,
                     pending: 1,
-                    // totalEarnings: 1 // Uncomment if price is on booking and calculated above
                 }
             }
         ]);
 
-        // If you need totalEarnings based on Listing price, you'd need a $lookup
-        // For now, let's fetch bookings and calculate earnings separately if price is on Listing
         const completedBookingsWithListing = await Booking.find({
             providerId: req.user.id,
-            status: 'completed'
+            status: { $in: ['completed', 'verified'] }
         }).populate('listingId', 'price');
 
         const totalEarnings = completedBookingsWithListing.reduce((acc, booking) => {
@@ -250,9 +244,20 @@ async function checkAndReleaseFunds(booking) {
             amount = listing ? listing.price : 0;
         }
 
-        wallet.balance += amount;
+        // Safely extract number from string (e.g. "100 / hour" -> 100)
+        let numericAmount = 0;
+        if (typeof amount === 'string') {
+            const match = amount.match(/[\d.]+/);
+            if (match) {
+                numericAmount = parseFloat(match[0]);
+            }
+        } else if (typeof amount === 'number') {
+            numericAmount = amount;
+        }
+
+        wallet.balance += numericAmount;
         wallet.transactions.push({
-            amount,
+            amount: numericAmount,
             type: 'credit',
             status: 'completed',
             bookingId: booking._id,
@@ -299,6 +304,35 @@ router.put('/:id/cancel', auth, async (req, res) => {
             `The booking for ${booking.listingId.name} was cancelled by the consumer.`,
             { bookingId: booking._id }
         );
+
+        res.json(booking);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+// PUT: Provider updates booking status (confirmed, rejected)
+router.put('/:id/status', auth, async (req, res) => {
+    try {
+        if (req.user.role !== 'provider') {
+            return res.status(403).json({ message: 'Only providers can update status' });
+        }
+
+        const { status } = req.body;
+        let booking = await Booking.findById(req.params.id);
+        if (!booking) return res.status(404).json({ message: 'Booking not found' });
+
+        if (booking.providerId.toString() !== req.user.id) {
+            return res.status(401).json({ message: 'Not authorized' });
+        }
+
+        // Only allow valid statuses from provider
+        if (!['confirmed', 'rejected', 'completed'].includes(status)) {
+            return res.status(400).json({ message: 'Invalid status update' });
+        }
+
+        booking.status = status;
+        await booking.save();
 
         res.json(booking);
     } catch (err) {

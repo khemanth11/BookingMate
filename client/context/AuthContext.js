@@ -3,11 +3,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { Alert } from 'react-native';
 
+import { BASE_URL } from '../utils/config';
+
 const AuthContext = createContext(null);
 
-// Replace this with your computer's local IP address if testing on a physical phone
-// e.g., 'http://192.168.1.X:5000'
-const API_URL = 'http://10.113.112.195:5000/api/auth';
+const API_URL = `${BASE_URL}/api/auth`;
 
 export function AuthProvider({ children }) {
     const [user, setUser] = useState(null);

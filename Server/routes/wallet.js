@@ -1,8 +1,20 @@
 import express from 'express';
-import auth from '../middleware/auth.js';
+import jwt from 'jsonwebtoken';
 import Wallet from '../models/Wallet.js';
 
 const router = express.Router();
+
+const auth = (req, res, next) => {
+    const token = req.header('x-auth-token');
+    if (!token) return res.status(401).json({ message: 'No token, authorization denied' });
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret-token-key-change-me');
+        req.user = decoded.user;
+        next();
+    } catch (err) {
+        res.status(401).json({ message: 'Token is not valid' });
+    }
+};
 
 // Get Wallet Stats
 router.get('/', auth, async (req, res) => {

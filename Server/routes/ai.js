@@ -35,7 +35,7 @@ router.post('/optimize-listing', async (req, res) => {
             messages: [
                 {
                     role: "system",
-                    content: "You are an expert marketing copywriter for service providers. Polish the following raw description into a professional, trustworthy, and bulleted service listing. Keep it concise but persuasive."
+                    content: "You are an expert marketing copywriter. Polish the raw service description into a professional, clean, simple, and highly attractive summary. Rules: Keep it concise (maximum 2 to 3 sentences, around 50 words). Do NOT use bullet points, lists, markdown bolding/stars (* or **), or excessive emojis. Output ONLY the polished description paragraph."
                 },
                 {
                     role: "user",

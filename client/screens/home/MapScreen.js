@@ -5,9 +5,10 @@ import {
 } from 'react-native';
 import MapView, { Marker, Callout } from 'react-native-maps';
 import axios from 'axios';
+import { BASE_URL } from '../../utils/config';
 import { useNavigation } from '@react-navigation/native';
 
-const API_URL = 'http://10.113.112.195:5000/api/listings';
+const API_URL = `${BASE_URL}/api/listings`;
 
 export default function MapScreen() {
     const [listings, setListings] = useState([]);
@@ -106,7 +107,7 @@ export default function MapScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f5f6f8',
+        backgroundColor: '#ffffff',
     },
     header: {
         position: 'absolute',
@@ -116,26 +117,23 @@ const styles = StyleSheet.create({
         zIndex: 10,
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: 'rgba(255, 255, 255, 0.98)',
+        backgroundColor: '#ffffff',
         padding: 16,
-        borderRadius: 24,
+        borderRadius: 16,
         borderWidth: 1,
-        borderColor: '#e2e8f0',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 10 },
-        shadowOpacity: 0.1,
-        shadowRadius: 20,
-        elevation: 5,
+        borderColor: '#f3f4f6',
     },
     backBtn: {
         marginRight: 16,
         padding: 10,
-        backgroundColor: '#f1f5f9',
+        backgroundColor: '#f9fafb',
         borderRadius: 14,
+        borderWidth: 1,
+        borderColor: '#e5e7eb',
     },
-    backIcon: { color: '#0f172a', fontSize: 18, fontWeight: 'bold' },
-    headerTitle: { color: '#0f172a', fontSize: 22, fontWeight: '900', letterSpacing: -0.6 },
-    headerSub: { color: '#64748b', fontSize: 13, fontWeight: '600', marginTop: -2 },
+    backIcon: { color: '#111827', fontSize: 18, fontFamily: 'Inter_700Bold' },
+    headerTitle: { color: '#111827', fontSize: 22, fontFamily: 'Inter_800ExtraBold', letterSpacing: -0.2 },
+    headerSub: { color: '#6b7280', fontSize: 13, fontFamily: 'Inter_600SemiBold', marginTop: -2 },
     loadingContainer: {
         flex: 1,
         justifyContent: 'center',
@@ -145,6 +143,7 @@ const styles = StyleSheet.create({
         color: '#6b7280',
         marginTop: 12,
         fontSize: 16,
+        fontFamily: 'Inter_500Medium',
     },
     map: {
         width: '100%',
@@ -152,22 +151,22 @@ const styles = StyleSheet.create({
     },
     calloutContainer: {
         backgroundColor: '#ffffff',
-        borderRadius: 20,
+        borderRadius: 16,
         padding: 20,
         minWidth: 220,
         borderWidth: 1,
-        borderColor: '#e2e8f0',
+        borderColor: '#f3f4f6',
     },
-    calloutTitle: { color: '#0f172a', fontSize: 18, fontWeight: '800', marginBottom: 4, letterSpacing: -0.4 },
-    calloutCategory: { color: '#64748b', fontSize: 13, marginBottom: 16, fontWeight: '600' },
+    calloutTitle: { color: '#111827', fontSize: 18, fontFamily: 'Inter_800ExtraBold', marginBottom: 4 },
+    calloutCategory: { color: '#6b7280', fontSize: 13, marginBottom: 16, fontFamily: 'Inter_600SemiBold' },
     priceRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
         borderTopWidth: 1,
-        borderTopColor: '#f1f5f9',
+        borderTopColor: '#f3f4f6',
         paddingTop: 16,
     },
-    calloutPrice: { color: '#0f172a', fontSize: 18, fontWeight: '900' },
-    linkText: { color: '#3b82f6', fontSize: 13, fontWeight: '700' }
+    calloutPrice: { color: '#111827', fontSize: 18, fontFamily: 'Inter_800ExtraBold' },
+    linkText: { color: '#2563eb', fontSize: 13, fontFamily: 'Inter_700Bold' }
 });

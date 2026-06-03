@@ -4,9 +4,10 @@ import {
     ScrollView, StatusBar, SafeAreaView, ActivityIndicator
 } from 'react-native';
 import axios from 'axios';
+import { BASE_URL } from '../../utils/config';
 
 // Ensure this matches your AuthContext API_URL
-const API_URL = 'http://10.113.112.195:5000/api/listings';
+const API_URL = `${BASE_URL}/api/listings`;
 
 export default function CategoryListingScreen({ route, navigation }) {
     const { category } = route.params;
@@ -37,7 +38,7 @@ export default function CategoryListingScreen({ route, navigation }) {
         try {
             const token = await AsyncStorage.getItem('token');
             if (!token) return;
-            const res = await axios.get('http://10.113.112.195:5000/api/auth/favorites', {
+            const res = await axios.get(`${BASE_URL}/api/auth/favorites`, {
                 headers: { 'x-auth-token': token }
             });
             setFavoriteIds(res.data.map(f => f._id || f));
@@ -58,7 +59,7 @@ export default function CategoryListingScreen({ route, navigation }) {
                 Alert.alert('Error', 'Please log in to favorite services.');
                 return;
             }
-            const res = await axios.post(`http://10.113.112.195:5000/api/auth/favorites/${listingId}`, {}, {
+            const res = await axios.post(`${BASE_URL}/api/auth/favorites/${listingId}`, {}, {
                 headers: { 'x-auth-token': token }
             });
             setFavoriteIds(res.data);
@@ -132,13 +133,13 @@ export default function CategoryListingScreen({ route, navigation }) {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f5f6f8',
+        backgroundColor: '#ffffff',
         paddingHorizontal: 20,
     },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginTop: 40, // Increased margin
+        marginTop: 40,
         marginBottom: 16,
     },
     backBtn: {
@@ -152,33 +153,28 @@ const styles = StyleSheet.create({
     backIcon: {
         color: '#111827',
         fontSize: 18,
-        fontWeight: 'bold',
+        fontFamily: 'Inter_700Bold',
     },
-    headerTitle: { color: '#0f172a', fontSize: 28, fontWeight: '900', letterSpacing: -0.8 },
-    headerSub: { color: '#64748b', fontSize: 15, marginTop: 2, fontWeight: '600' },
+    headerTitle: { color: '#111827', fontSize: 28, fontFamily: 'Inter_800ExtraBold', letterSpacing: -0.5 },
+    headerSub: { color: '#6b7280', fontSize: 15, marginTop: 2, fontFamily: 'Inter_500Medium' },
     sectionHeader: {
         marginBottom: 20,
     },
     resultCount: {
         color: '#6b7280',
         fontSize: 15,
-        fontWeight: '500',
+        fontFamily: 'Inter_500Medium',
     },
     scrollContent: {
         paddingBottom: 40,
     },
     listingCard: {
-        backgroundColor: '#ffffff',
-        borderRadius: 24,
-        padding: 24,
-        marginBottom: 20,
+        backgroundColor: '#f9fafb',
+        borderRadius: 16,
+        padding: 20,
+        marginBottom: 16,
         borderWidth: 1,
-        borderColor: '#e2e8f0',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.05,
-        shadowRadius: 10,
-        elevation: 2,
+        borderColor: '#f3f4f6',
     },
     cardHeader: {
         flexDirection: 'row',
@@ -188,20 +184,20 @@ const styles = StyleSheet.create({
     },
     cardLeft: { flex: 1 },
     itemName: {
-        color: '#0f172a',
-        fontWeight: '800',
+        color: '#111827',
+        fontFamily: 'Inter_700Bold',
         fontSize: 20,
         marginBottom: 6,
-        letterSpacing: -0.4,
+        letterSpacing: -0.2,
     },
     providerTag: {
         flexDirection: 'row',
         alignItems: 'center',
     },
     providerText: {
-        color: '#64748b',
+        color: '#6b7280',
         fontSize: 14,
-        fontWeight: '600',
+        fontFamily: 'Inter_500Medium',
     },
     verifiedIcon: {
         marginLeft: 4,
@@ -226,14 +222,16 @@ const styles = StyleSheet.create({
         borderTopColor: '#f1f5f9',
     },
     priceBadge: {
-        backgroundColor: '#f1f5f9',
+        backgroundColor: '#ffffff',
         paddingHorizontal: 10,
         paddingVertical: 5,
         borderRadius: 10,
+        borderWidth: 1,
+        borderColor: '#e5e7eb',
     },
     priceText: {
-        color: '#0f172a',
-        fontWeight: '900',
+        color: '#111827',
+        fontFamily: 'Inter_800ExtraBold',
         fontSize: 18,
     },
     statusBadge: {
@@ -243,7 +241,7 @@ const styles = StyleSheet.create({
     },
     statusBadgeText: {
         fontSize: 11,
-        fontWeight: '900',
+        fontFamily: 'Inter_800ExtraBold',
         letterSpacing: 0.5,
     },
 });

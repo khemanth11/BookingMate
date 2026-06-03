@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  ScrollView, StatusBar, SafeAreaView, Alert, ActivityIndicator
+  ScrollView, StatusBar, SafeAreaView, Alert, ActivityIndicator, Image
 } from 'react-native';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { BASE_URL } from '../../utils/config';
 
 const TIME_SLOTS = ['8:00 AM', '10:00 AM', '12:00 PM', '2:00 PM', '4:00 PM', '6:00 PM'];
 
@@ -21,23 +22,23 @@ export default function ListingDetailScreen({ route, navigation }) {
     const fetchReviews = async () => {
       try {
         const listingId = listing._id || listing.id;
-        const res = await axios.get(`http://10.113.112.195:5000/api/reviews/listing/${listingId}`);
+        const res = await axios.get(`${BASE_URL}/api/reviews/listing/${listingId}`);
         setReviews(res.data || []);
       } catch (err) {
         console.error('Error fetching reviews:', err);
       }
     };
-    
+
     const checkFavorite = async () => {
-        if (!user) return;
-        try {
-            const token = await AsyncStorage.getItem('token');
-            const res = await axios.get(`http://10.113.112.195:5000/api/auth/favorites`, {
-                headers: { 'x-auth-token': token }
-            });
-            const favIds = res.data.map(f => f._id || f);
-            setIsFavorite(favIds.includes(listing._id || listing.id));
-        } catch (err) { /* ignore */ }
+      if (!user) return;
+      try {
+        const token = await AsyncStorage.getItem('token');
+        const res = await axios.get(`${BASE_URL}/api/auth/favorites`, {
+          headers: { 'x-auth-token': token }
+        });
+        const favIds = res.data.map(f => f._id || f);
+        setIsFavorite(favIds.includes(listing._id || listing.id));
+      } catch (err) { /* ignore */ }
     };
 
     fetchReviews();
@@ -61,7 +62,7 @@ export default function ListingDetailScreen({ route, navigation }) {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#f5f6f8" />
+      <StatusBar barStyle="dark-content" backgroundColor="#f8fafc" />
 
       {/* Header */}
       <View style={styles.header}>
@@ -69,7 +70,7 @@ export default function ListingDetailScreen({ route, navigation }) {
           <Text style={styles.backIcon}>←</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('details')}</Text>
-        <TouchableOpacity 
+        <TouchableOpacity
           onPress={async () => {
             if (!user) {
               Alert.alert('Error', 'Please log in to favorite services.');
@@ -77,7 +78,7 @@ export default function ListingDetailScreen({ route, navigation }) {
             }
             try {
               const token = await AsyncStorage.getItem('token');
-              const res = await axios.post(`http://10.113.112.195:5000/api/auth/favorites/${listing._id || listing.id}`, {}, {
+              const res = await axios.post(`${BASE_URL}/api/auth/favorites/${listing._id || listing.id}`, {}, {
                 headers: { 'x-auth-token': token }
               });
               setIsFavorite(res.data.includes(listing._id || listing.id));
@@ -95,21 +96,29 @@ export default function ListingDetailScreen({ route, navigation }) {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         {/* Main Card */}
         <View style={styles.mainCard}>
-          <View style={styles.iconCircle}>
-            <Text style={styles.bigIcon}>{category.icon}</Text>
-          </View>
+          {listing.image || listing.imageUrl ? (
+            <Image
+              source={{ uri: listing.image || listing.imageUrl }}
+              style={styles.listingImage}
+              resizeMode="cover"
+            />
+          ) : (
+            <View style={styles.iconCircle}>
+              <Text style={styles.bigIcon}>{category?.icon || '✨'}</Text>
+            </View>
+          )}
           <Text style={styles.itemName}>{listing.name}</Text>
-          
-          <TouchableOpacity 
-            onPress={() => navigation.navigate('ProfileScreen', { 
+
+          <TouchableOpacity
+            onPress={() => navigation.navigate('ProfileScreen', {
               providerId: listing.providerId?._id || listing.providerId,
               providerName: listing.providerId?.name || 'Local Expert'
             })}
             style={styles.providerTag}
           >
             <Text style={styles.providerText}>
-               {listing.providerId?.name || 'Local Expert'} 
-               {listing.providerId?.isVerified && <Text style={styles.verifiedIcon}> ✅</Text>}
+              {listing.providerId?.name || 'Local Expert'}
+              {listing.providerId?.isVerified && <Text style={styles.verifiedIcon}> ✅</Text>}
             </Text>
             <Text style={styles.viewProfileTxt}> View Profile</Text>
           </TouchableOpacity>
@@ -187,13 +196,13 @@ export default function ListingDetailScreen({ route, navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f6f8',
+    backgroundColor: '#f8fafc',
     paddingHorizontal: 20,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 40, // Increased margin
+    marginTop: 40,
     marginBottom: 16,
   },
   backBtn: {
@@ -202,17 +211,17 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: '#f1f5f9',
   },
   backIcon: {
-    color: '#111827',
+    color: '#374151',
     fontSize: 18,
-    fontWeight: 'bold',
+    fontFamily: 'Inter_700Bold',
   },
   headerTitle: {
-    color: '#111827',
-    fontSize: 26,
-    fontWeight: '800',
+    color: '#374151',
+    fontSize: 22,
+    fontFamily: 'Inter_800ExtraBold',
     letterSpacing: -0.5,
     flex: 1,
   },
@@ -221,7 +230,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: '#f1f5f9',
   },
   favIcon: {
     fontSize: 20,
@@ -231,17 +240,12 @@ const styles = StyleSheet.create({
   },
   mainCard: {
     backgroundColor: '#ffffff',
-    borderRadius: 32,
+    borderRadius: 24,
     padding: 32,
     alignItems: 'center',
     marginBottom: 28,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 15,
-    elevation: 3,
+    borderColor: '#f1f5f9',
   },
   iconCircle: {
     backgroundColor: '#f8fafc',
@@ -257,33 +261,44 @@ const styles = StyleSheet.create({
   bigIcon: {
     fontSize: 44,
   },
+  listingImage: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#f1f5f9',
+  },
   itemName: {
-    color: '#0f172a',
-    fontSize: 28,
-    fontWeight: '900',
+    color: '#1f2937',
+    fontSize: 24,
+    fontFamily: 'Inter_800ExtraBold',
     marginBottom: 12,
-    letterSpacing: -0.8,
+    letterSpacing: -0.5,
     textAlign: 'center',
   },
   providerTag: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f1f5f9',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
+    backgroundColor: '#f8fafc',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 16,
     marginBottom: 28,
+    borderWidth: 1,
+    borderColor: '#f1f5f9',
   },
   providerText: {
-    color: '#64748b',
+    color: '#6b7280',
     fontSize: 14,
-    fontWeight: '700',
+    fontFamily: 'Inter_600SemiBold',
   },
   viewProfileTxt: {
-    color: '#3b82f6',
+    color: '#374151',
     fontSize: 13,
-    fontWeight: '600',
+    fontFamily: 'Inter_700Bold',
     marginLeft: 8,
+    textDecorationLine: 'underline',
   },
   statsRow: {
     flexDirection: 'row',
@@ -291,44 +306,42 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     width: '100%',
     marginBottom: 28,
-    paddingHorizontal: 10,
+    paddingHorizontal: 20,
   },
   priceContainer: {
     alignItems: 'center',
     flex: 1,
   },
   priceLabel: {
-    fontSize: 12,
-    color: '#64748b',
-    fontWeight: '600',
-    textTransform: 'uppercase',
+    fontSize: 13,
+    color: '#6b7280',
+    fontFamily: 'Inter_500Medium',
     marginBottom: 4,
   },
   priceValue: {
-    fontSize: 24,
-    color: '#0f172a',
-    fontWeight: '900',
+    fontSize: 16,
+    color: '#1f2937',
+    fontFamily: 'Inter_800ExtraBold',
   },
   divider: {
     width: 1,
     height: 30,
-    backgroundColor: '#e2e8f0',
+    backgroundColor: '#e5e7eb',
   },
   ratingContainer: {
     alignItems: 'center',
     flex: 1,
   },
   ratingLabel: {
-    fontSize: 12,
-    color: '#64748b',
-    fontWeight: '600',
-    textTransform: 'uppercase',
+    fontSize: 13,
+    color: '#6b7280',
+    fontFamily: 'Inter_500Medium',
     marginBottom: 4,
   },
   ratingValue: {
-    fontSize: 24,
-    color: '#f59e0b',
-    fontWeight: '900',
+    fontSize: 16,
+    color: '#1f2937',
+    fontFamily: 'Inter_800ExtraBold',
   },
   statusBadge: {
     borderRadius: 12,
@@ -336,7 +349,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   statusText: {
-    fontWeight: '800',
+    fontFamily: 'Inter_700Bold',
     fontSize: 13,
     letterSpacing: 0.2,
   },
@@ -353,23 +366,23 @@ const styles = StyleSheet.create({
   ratingText: {
     color: '#6b7280',
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: 'Inter_600SemiBold',
   },
   sectionContainer: {
     marginBottom: 28,
   },
   sectionTitle: {
-    color: '#0f172a',
-    fontSize: 22,
-    fontWeight: '900',
+    color: '#1f2937',
+    fontSize: 20,
+    fontFamily: 'Inter_800ExtraBold',
     marginBottom: 12,
-    letterSpacing: -0.5,
+    letterSpacing: -0.2,
   },
   descriptionText: {
-    color: '#475569',
+    color: '#4b5563',
     fontSize: 16,
     lineHeight: 26,
-    fontWeight: '500',
+    fontFamily: 'Inter_400Regular',
   },
   slotsGrid: {
     flexDirection: 'row',
@@ -393,40 +406,43 @@ const styles = StyleSheet.create({
   slotText: {
     color: '#6b7280',
     fontSize: 14,
-    fontWeight: '500',
+    fontFamily: 'Inter_500Medium',
   },
   slotTextActive: {
     color: '#111827',
-    fontWeight: '700',
+    fontFamily: 'Inter_700Bold',
   },
   bookBtn: {
-    backgroundColor: '#0f172a',
-    borderRadius: 20,
-    padding: 22,
+    backgroundColor: '#111827',
+    borderRadius: 16,
+    paddingVertical: 18,
     alignItems: 'center',
-    marginTop: 10,
-    shadowColor: '#0f172a',
-    shadowOffset: { width: 0, height: 10 },
+    marginTop: 16,
+    marginBottom: 40, // Added spacing to separate from reviews
+    shadowColor: '#111827',
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
-    shadowRadius: 15,
-    elevation: 5,
+    shadowRadius: 8,
+    elevation: 4,
   },
   bookBtnDisabled: {
-    backgroundColor: '#e2e8f0',
+    backgroundColor: '#e5e7eb',
+    shadowOpacity: 0,
+    elevation: 0,
   },
   bookBtnText: {
     color: '#ffffff',
-    fontWeight: '900',
-    fontSize: 18,
+    fontFamily: 'Inter_700Bold',
+    fontSize: 16,
     letterSpacing: 0.5,
   },
   reviewCard: {
     backgroundColor: '#ffffff',
-    borderRadius: 14,
+    borderRadius: 16,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: '#f1f5f9',
   },
   reviewHeader: {
     flexDirection: 'row',
@@ -437,7 +453,7 @@ const styles = StyleSheet.create({
   reviewerName: {
     color: '#111827',
     fontSize: 14,
-    fontWeight: '700',
+    fontFamily: 'Inter_700Bold',
   },
   reviewStars: {
     color: '#f59e0b',
@@ -447,5 +463,6 @@ const styles = StyleSheet.create({
     color: '#6b7280',
     fontSize: 14,
     lineHeight: 20,
+    fontFamily: 'Inter_400Regular',
   },
 });

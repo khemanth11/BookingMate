@@ -6,8 +6,9 @@ import {
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
+import { BASE_URL } from '../../utils/config';
 
-const API_URL = 'http://10.113.112.195:5000/api/auth/favorites';
+const API_URL = `${BASE_URL}/api/auth/favorites`;
 
 export default function FavoritesScreen() {
     const [favorites, setFavorites] = useState([]);

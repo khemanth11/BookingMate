@@ -8,8 +8,9 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../../context/AuthContext';
+import { BASE_URL } from '../../utils/config';
 
-const API_URL = 'http://10.113.112.195:5000/api/bookings';
+const API_URL = `${BASE_URL}/api/bookings`;
 
 export default function ConsumerBookingsScreen() {
     const [bookings, setBookings] = useState([]);
@@ -32,11 +33,11 @@ export default function ConsumerBookingsScreen() {
             setBookings(res.data);
 
             // Check which completed bookings have been reviewed
-            const completedBookings = res.data.filter(b => b.status === 'completed');
+            const completedBookings = res.data.filter(b => b.status === 'completed' || b.status === 'verified');
             const reviewChecks = {};
             for (const b of completedBookings) {
                 try {
-                    const checkRes = await axios.get(`http://10.113.112.195:5000/api/reviews/check/${b._id}`, {
+                    const checkRes = await axios.get(`${BASE_URL}/api/reviews/check/${b._id}`, {
                         headers: { 'x-auth-token': token }
                     });
                     reviewChecks[b._id] = checkRes.data.reviewed;
@@ -185,22 +186,7 @@ export default function ConsumerBookingsScreen() {
                         <Text style={styles.payoutText}>💰 Funds Released to Provider</Text>
                     </View>
                 )}
-
-                {item.status === 'completed' && !item.consumerVerified && (
-                    <TouchableOpacity
-                        style={styles.verifyActionBtn}
-                        onPress={() => handleVerifyCompletion(item._id)}
-                    >
-                        <Text style={styles.verifyActionBtnText}>✅ Verify & Release Funds</Text>
-                    </TouchableOpacity>
-                )}
-
-                {item.payoutReleased && (
-                    <View style={styles.payoutBadge}>
-                        <Text style={styles.payoutText}>💰 Funds Released to Provider</Text>
-                    </View>
-                )}
-                {item.status === 'completed' && !reviewedBookings[item._id] && (
+                {(item.status === 'completed' || item.status === 'verified') && !reviewedBookings[item._id] && (
                     <TouchableOpacity
                         style={styles.reviewActionBtn}
                         onPress={() => {
@@ -213,7 +199,7 @@ export default function ConsumerBookingsScreen() {
                         <Text style={styles.reviewActionBtnText}>⭐ Write a Review</Text>
                     </TouchableOpacity>
                 )}
-                {item.status === 'completed' && reviewedBookings[item._id] && (
+                {(item.status === 'completed' || item.status === 'verified') && reviewedBookings[item._id] && (
                     <View style={styles.reviewedTag}>
                         <Text style={styles.reviewedTagText}>✅ Reviewed</Text>
                     </View>
@@ -285,7 +271,7 @@ export default function ConsumerBookingsScreen() {
                                 setIsSubmittingReview(true);
                                 try {
                                     const token = await AsyncStorage.getItem('token');
-                                    await axios.post('http://10.113.112.195:5000/api/reviews', {
+                                    await axios.post(`${BASE_URL}/api/reviews`, {
                                         bookingId: reviewBookingId,
                                         rating: reviewRating,
                                         reviewText
@@ -317,36 +303,31 @@ export default function ConsumerBookingsScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#f5f6f8', paddingHorizontal: 16 },
+    container: { flex: 1, backgroundColor: '#ffffff', paddingHorizontal: 16 },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginTop: 40, // Increased margin
+        marginTop: 40,
         marginBottom: 20,
     },
     backBtn: {
         marginRight: 15,
         padding: 8,
-        backgroundColor: '#ffffff',
+        backgroundColor: '#f9fafb',
         borderRadius: 14,
         borderWidth: 1,
         borderColor: '#e5e7eb',
     },
-    backIcon: { color: '#111827', fontSize: 18, fontWeight: 'bold' },
-    headerTitle: { color: '#0f172a', fontSize: 28, fontWeight: '900', letterSpacing: -0.8 },
-    headerSub: { color: '#64748b', fontSize: 15, marginTop: 2, fontWeight: '600' },
+    backIcon: { color: '#111827', fontSize: 18, fontFamily: 'Inter_700Bold' },
+    headerTitle: { color: '#111827', fontSize: 28, fontFamily: 'Inter_800ExtraBold', letterSpacing: -0.5 },
+    headerSub: { color: '#6b7280', fontSize: 15, marginTop: 2, fontFamily: 'Inter_600SemiBold' },
     bookingCard: {
-        backgroundColor: '#ffffff',
-        borderRadius: 24,
-        padding: 24,
-        marginBottom: 20,
+        backgroundColor: '#f9fafb',
+        borderRadius: 16,
+        padding: 20,
+        marginBottom: 16,
         borderWidth: 1,
-        borderColor: '#e2e8f0',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.05,
-        shadowRadius: 10,
-        elevation: 2,
+        borderColor: '#f3f4f6',
     },
     cardHeader: {
         flexDirection: 'row',
@@ -354,10 +335,10 @@ const styles = StyleSheet.create({
         alignItems: 'flex-start',
         marginBottom: 16,
     },
-    cardTitle: { color: '#0f172a', fontSize: 20, fontWeight: '800', flex: 1, marginRight: 10, letterSpacing: -0.3 },
+    cardTitle: { color: '#111827', fontSize: 20, fontFamily: 'Inter_800ExtraBold', flex: 1, marginRight: 10, letterSpacing: -0.2 },
     statusBadge: { borderRadius: 12, paddingHorizontal: 12, paddingVertical: 6 },
-    statusBadgeText: { fontSize: 11, fontWeight: '900', letterSpacing: 0.5 },
-    cardInfo: { color: '#64748b', fontSize: 15, marginBottom: 10, fontWeight: '600' },
+    statusBadgeText: { fontSize: 11, fontFamily: 'Inter_800ExtraBold', letterSpacing: 0.5 },
+    cardInfo: { color: '#6b7280', fontSize: 15, marginBottom: 10, fontFamily: 'Inter_600SemiBold' },
     verifiedBadge: {
         backgroundColor: '#f0fdfa',
         paddingHorizontal: 12,
@@ -371,28 +352,28 @@ const styles = StyleSheet.create({
     verifiedText: {
         color: '#059669',
         fontSize: 12,
-        fontWeight: 'bold',
+        fontFamily: 'Inter_700Bold',
     },
     statusMsg: {
         marginTop: 16,
         paddingTop: 16,
         borderTopWidth: 1,
-        borderTopColor: '#f1f5f9',
+        borderTopColor: '#f3f4f6',
         color: '#92400e',
         fontSize: 14,
         fontStyle: 'italic',
-        fontWeight: '600',
+        fontFamily: 'Inter_600SemiBold',
     },
     chatActionBtn: {
         marginTop: 20,
-        backgroundColor: '#0f172a',
+        backgroundColor: '#2563eb',
         paddingVertical: 16,
         borderRadius: 16,
         alignItems: 'center',
     },
     cancelActionBtnText: {
         color: '#ef4444',
-        fontWeight: '700',
+        fontFamily: 'Inter_700Bold',
         fontSize: 15,
     },
     chatActionBtnText: {
@@ -402,8 +383,8 @@ const styles = StyleSheet.create({
     },
     emptyContainer: { alignItems: 'center', marginTop: 80, paddingHorizontal: 20 },
     emptyIcon: { fontSize: 50, marginBottom: 16 },
-    emptyText: { color: '#111827', fontSize: 22, fontWeight: '800' },
-    emptyHint: { color: '#6b7280', fontSize: 15, marginTop: 10, textAlign: 'center', lineHeight: 22 },
+    emptyText: { color: '#111827', fontSize: 22, fontFamily: 'Inter_800ExtraBold' },
+    emptyHint: { color: '#6b7280', fontSize: 15, marginTop: 10, textAlign: 'center', lineHeight: 22, fontFamily: 'Inter_500Medium' },
     reviewActionBtn: {
         marginTop: 16,
         backgroundColor: '#fef3c7',
@@ -411,20 +392,22 @@ const styles = StyleSheet.create({
         borderRadius: 16,
         alignItems: 'center',
         borderWidth: 1,
-        borderColor: '#f59e0b',
+        borderColor: '#fcd34d',
     },
-    reviewActionBtnText: { color: '#92400e', fontWeight: '800', fontSize: 16 },
+    reviewActionBtnText: { color: '#b45309', fontFamily: 'Inter_700Bold', fontSize: 16 },
     reviewedTag: {
         marginTop: 12,
-        backgroundColor: '#f1f5f9',
+        backgroundColor: '#f9fafb',
         paddingVertical: 8,
         paddingHorizontal: 12,
         borderRadius: 10,
         alignSelf: 'flex-start',
+        borderWidth: 1,
+        borderColor: '#f3f4f6',
     },
     reviewedTagText: {
-        color: '#64748b',
-        fontWeight: '700',
+        color: '#6b7280',
+        fontFamily: 'Inter_700Bold',
         fontSize: 13,
     },
     cancelActionBtnText: {
@@ -434,19 +417,14 @@ const styles = StyleSheet.create({
     },
     verifyActionBtn: {
         marginTop: 20,
-        backgroundColor: '#16a34a',
+        backgroundColor: '#22c55e',
         paddingVertical: 16,
         borderRadius: 16,
         alignItems: 'center',
-        shadowColor: '#16a34a',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.2,
-        shadowRadius: 8,
-        elevation: 4,
     },
     verifyActionBtnText: {
         color: '#ffffff',
-        fontWeight: '900',
+        fontFamily: 'Inter_800ExtraBold',
         fontSize: 16
     },
     payoutBadge: {
@@ -455,12 +433,12 @@ const styles = StyleSheet.create({
         borderRadius: 14,
         marginTop: 16,
         borderWidth: 1,
-        borderColor: '#dcfce7',
+        borderColor: '#bbf7d0',
         alignItems: 'center'
     },
     payoutText: {
         color: '#166534',
-        fontWeight: '800',
+        fontFamily: 'Inter_700Bold',
         fontSize: 13
     },
     modalOverlay: {
@@ -480,7 +458,7 @@ const styles = StyleSheet.create({
     modalTitle: {
         color: '#111827',
         fontSize: 22,
-        fontWeight: '800',
+        fontFamily: 'Inter_800ExtraBold',
         marginBottom: 20,
     },
     starsRow: {
@@ -507,9 +485,10 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: '#e5e7eb',
         marginBottom: 20,
+        fontFamily: 'Inter_400Regular',
     },
     submitReviewBtn: {
-        backgroundColor: '#111827',
+        backgroundColor: '#2563eb',
         borderRadius: 14,
         paddingVertical: 14,
         paddingHorizontal: 40,
@@ -518,12 +497,12 @@ const styles = StyleSheet.create({
     },
     submitReviewText: {
         color: '#ffffff',
-        fontWeight: 'bold',
+        fontFamily: 'Inter_700Bold',
         fontSize: 16,
     },
     cancelReviewText: {
         color: '#6b7280',
         fontSize: 14,
-        fontWeight: '600',
+        fontFamily: 'Inter_600SemiBold',
     },
 });

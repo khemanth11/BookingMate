@@ -10,8 +10,9 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import * as Location from 'expo-location';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { BASE_URL } from '../../utils/config';
 
-const API_URL = 'http://10.113.112.195:5000/api/listings';
+const API_URL = `${BASE_URL}/api/listings`;
 
 const CATEGORIES = [
     'Farm Animals', 'Medical', 'Farm Equipment',
@@ -46,7 +47,7 @@ export default function EditListingScreen() {
         }
         setIsOptimizing(true);
         try {
-            const res = await axios.post(`http://10.113.112.195:5000/api/ai/optimize-listing`, { rawDescription: description });
+            const res = await axios.post(`${BASE_URL}/api/ai/optimize-listing`, { rawDescription: description });
             if (res.data.optimizedText) {
                 setDescription(res.data.optimizedText);
             }
@@ -65,7 +66,7 @@ export default function EditListingScreen() {
         }
         setIsSuggesting(true);
         try {
-            const res = await axios.post(`http://10.113.112.195:5000/api/ai/suggest-price`, { 
+            const res = await axios.post(`${BASE_URL}/api/ai/suggest-price`, { 
                 name, category, description 
             });
             if (res.data.suggestedPrice) {

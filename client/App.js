@@ -1,6 +1,8 @@
 import React from 'react';
+import { View, ActivityIndicator } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { useFonts, Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold, Inter_800ExtraBold, Inter_900Black } from '@expo-google-fonts/inter';
 
 import { AuthProvider } from './context/AuthContext';
 import { ProviderProvider } from './screens/provider/ProviderContext';
@@ -29,6 +31,23 @@ import WalletScreen from './screens/provider/WalletScreen';
 const Stack = createNativeStackNavigator();
 
 export default function App() {
+    let [fontsLoaded] = useFonts({
+        Inter_400Regular,
+        Inter_500Medium,
+        Inter_600SemiBold,
+        Inter_700Bold,
+        Inter_800ExtraBold,
+        Inter_900Black
+    });
+
+    if (!fontsLoaded) {
+        return (
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                <ActivityIndicator size="large" color="#2563eb" />
+            </View>
+        );
+    }
+
     return (
         <StripeProvider publishableKey="pk_test_placeholder">
             <LanguageProvider>

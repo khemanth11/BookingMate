@@ -8,6 +8,7 @@ import { useProvider } from './ProviderContext';
 import { useNavigation } from '@react-navigation/native';
 import * as Location from 'expo-location';
 import axios from 'axios';
+import { BASE_URL } from '../../utils/config';
 
 const CATEGORIES = [
     'Farm Animals', 'Medical', 'Farm Equipment',
@@ -34,7 +35,7 @@ export default function AddListingScreen() {
         }
         setIsOptimizing(true);
         try {
-            const res = await axios.post(`http://10.113.112.195:5000/api/ai/optimize-listing`, { rawDescription: description });
+            const res = await axios.post(`${BASE_URL}/api/ai/optimize-listing`, { rawDescription: description });
             if (res.data.optimizedText) {
                 setDescription(res.data.optimizedText);
             }
@@ -53,7 +54,7 @@ export default function AddListingScreen() {
         }
         setIsSuggesting(true);
         try {
-            const res = await axios.post(`http://10.113.112.195:5000/api/ai/suggest-price`, { 
+            const res = await axios.post(`${BASE_URL}/api/ai/suggest-price`, { 
                 name, category, description 
             });
             if (res.data.suggestedPrice) {

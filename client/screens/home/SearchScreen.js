@@ -5,8 +5,9 @@ import {
 } from 'react-native';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { BASE_URL } from '../../utils/config';
 
-const API_URL = 'http://10.113.112.195:5000/api/listings';
+const API_URL = `${BASE_URL}/api/listings`;
 
 export default function SearchScreen({ navigation }) {
     const [query, setQuery] = useState('');
@@ -18,7 +19,7 @@ export default function SearchScreen({ navigation }) {
         try {
             const token = await AsyncStorage.getItem('token');
             if (!token) return;
-            const res = await axios.get('http://10.113.112.195:5000/api/auth/favorites', {
+            const res = await axios.get(`${BASE_URL}/api/auth/favorites`, {
                 headers: { 'x-auth-token': token }
             });
             setFavoriteIds(res.data.map(f => f._id || f));
@@ -36,7 +37,7 @@ export default function SearchScreen({ navigation }) {
         try {
             const token = await AsyncStorage.getItem('token');
             if (!token) return;
-            const res = await axios.post(`http://10.113.112.195:5000/api/auth/favorites/${listingId}`, {}, {
+            const res = await axios.post(`${BASE_URL}/api/auth/favorites/${listingId}`, {}, {
                 headers: { 'x-auth-token': token }
             });
             setFavoriteIds(res.data);
@@ -127,7 +128,7 @@ export default function SearchScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#f5f6f8' },
+    container: { flex: 1, backgroundColor: '#ffffff' },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -137,54 +138,44 @@ const styles = StyleSheet.create({
     },
     backBtn: {
         padding: 8,
-        backgroundColor: '#ffffff',
+        backgroundColor: '#f9fafb',
         borderRadius: 14,
         marginRight: 16,
         borderWidth: 1,
         borderColor: '#e5e7eb',
     },
-    backIcon: { fontSize: 18, color: '#111827', fontWeight: 'bold' },
-    headerTitle: { color: '#0f172a', fontSize: 28, fontWeight: '900', letterSpacing: -0.8 },
+    backIcon: { fontSize: 18, color: '#111827', fontFamily: 'Inter_700Bold' },
+    headerTitle: { color: '#111827', fontSize: 28, fontFamily: 'Inter_800ExtraBold', letterSpacing: -0.5 },
     searchContainer: {
         paddingHorizontal: 20,
         marginBottom: 20,
     },
     input: {
-        backgroundColor: '#ffffff',
-        borderRadius: 20,
-        padding: 20,
+        backgroundColor: '#f9fafb',
+        borderRadius: 16,
+        padding: 16,
         fontSize: 16,
         borderWidth: 1,
-        borderColor: '#e2e8f0',
-        color: '#0f172a',
+        borderColor: '#e5e7eb',
+        color: '#111827',
         marginBottom: 16,
-        fontWeight: '500',
+        fontFamily: 'Inter_400Regular',
     },
     searchBtn: {
-        backgroundColor: '#0f172a',
-        borderRadius: 20,
-        padding: 18,
+        backgroundColor: '#2563eb',
+        borderRadius: 16,
+        padding: 16,
         alignItems: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-        elevation: 3,
     },
-    searchBtnText: { color: '#ffffff', fontWeight: '900', fontSize: 16, letterSpacing: 0.5 },
+    searchBtnText: { color: '#ffffff', fontFamily: 'Inter_700Bold', fontSize: 16 },
     listContent: { paddingHorizontal: 20, paddingBottom: 40 },
     searchResultCard: {
-        backgroundColor: '#ffffff',
-        borderRadius: 24,
+        backgroundColor: '#f9fafb',
+        borderRadius: 16,
         padding: 20,
         marginBottom: 16,
         borderWidth: 1,
-        borderColor: '#e2e8f0',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 5,
-        elevation: 1,
+        borderColor: '#f3f4f6',
     },
     cardMain: {
         flexDirection: 'row',
@@ -192,17 +183,19 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
     },
     cardInfo: { flex: 1 },
-    itemName: { fontSize: 18, fontWeight: '800', color: '#0f172a', marginBottom: 4, letterSpacing: -0.4 },
-    itemCategory: { fontSize: 14, color: '#64748b', marginBottom: 10, fontWeight: '600' },
+    itemName: { fontSize: 18, fontFamily: 'Inter_700Bold', color: '#111827', marginBottom: 4 },
+    itemCategory: { fontSize: 14, color: '#6b7280', marginBottom: 10, fontFamily: 'Inter_500Medium' },
     priceBadge: {
-        backgroundColor: '#f1f5f9',
+        backgroundColor: '#ffffff',
         paddingHorizontal: 10,
         paddingVertical: 5,
         borderRadius: 10,
         alignSelf: 'flex-start',
+        borderWidth: 1,
+        borderColor: '#e5e7eb',
     },
-    itemPrice: { fontSize: 16, fontWeight: '900', color: '#0f172a' },
-    heartAction: { padding: 8, backgroundColor: '#f8fafc', borderRadius: 12, borderWidth: 1, borderColor: '#f1f5f9' },
+    itemPrice: { fontSize: 16, fontFamily: 'Inter_800ExtraBold', color: '#111827' },
+    heartAction: { padding: 8, backgroundColor: '#ffffff', borderRadius: 12, borderWidth: 1, borderColor: '#e5e7eb' },
     heartIcon: { fontSize: 18 },
-    noResults: { textAlign: 'center', color: '#6b7280', marginTop: 20, fontSize: 15 },
+    noResults: { textAlign: 'center', color: '#6b7280', marginTop: 20, fontSize: 15, fontFamily: 'Inter_500Medium' },
 });

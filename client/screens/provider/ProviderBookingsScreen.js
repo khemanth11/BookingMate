@@ -9,8 +9,9 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../../context/AuthContext';
+import { BASE_URL } from '../../utils/config';
 
-const API_URL = 'http://10.113.112.195:5000/api/bookings';
+const API_URL = `${BASE_URL}/api/bookings`;
 
 export default function ProviderBookingsScreen() {
     const [bookings, setBookings] = useState([]);
@@ -86,7 +87,7 @@ export default function ProviderBookingsScreen() {
             });
 
             const token = await AsyncStorage.getItem('token');
-            const res = await axios.post(`http://10.113.112.195:5000/api/ai/verify-job-completion`, {
+            const res = await axios.post(`${BASE_URL}/api/ai/verify-job-completion`, {
                 image: photo.base64,
                 bookingId: verifyingBookingId
             }, {
@@ -267,81 +268,74 @@ export default function ProviderBookingsScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#f5f6f8', paddingHorizontal: 16 },
+    container: { flex: 1, backgroundColor: '#ffffff', paddingHorizontal: 16 },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginTop: 40, // Increased margin
+        marginTop: 40,
         marginBottom: 20,
     },
     backBtn: {
         marginRight: 15,
         padding: 8,
-        backgroundColor: '#ffffff',
+        backgroundColor: '#f9fafb',
         borderRadius: 14,
         borderWidth: 1,
         borderColor: '#e5e7eb',
     },
-    backIcon: { color: '#111827', fontSize: 16, fontWeight: 'bold' },
-    headerTitleText: { color: '#0f172a', fontSize: 28, fontWeight: '900', letterSpacing: -0.8 },
-    headerSubText: { color: '#64748b', fontSize: 15, marginTop: 2, fontWeight: '600' },
+    backIcon: { color: '#111827', fontSize: 16, fontFamily: 'Inter_700Bold' },
+    headerTitleText: { color: '#111827', fontSize: 28, fontFamily: 'Inter_800ExtraBold', letterSpacing: -0.5 },
+    headerSubText: { color: '#6b7280', fontSize: 15, marginTop: 2, fontFamily: 'Inter_600SemiBold' },
     card: {
-        backgroundColor: '#ffffff',
-        borderRadius: 24,
+        backgroundColor: '#f9fafb',
+        borderRadius: 16,
         padding: 24,
         marginBottom: 20,
         borderWidth: 1,
-        borderColor: '#e2e8f0',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.05,
-        shadowRadius: 10,
-        elevation: 2,
+        borderColor: '#f3f4f6',
     },
     cardHeader: {
         flexDirection: 'row', justifyContent: 'space-between',
         alignItems: 'flex-start', marginBottom: 16,
     },
-    cardTitle: { color: '#0f172a', fontSize: 20, fontWeight: '800', flex: 1, marginRight: 10, letterSpacing: -0.4 },
+    cardTitle: { color: '#111827', fontSize: 20, fontFamily: 'Inter_800ExtraBold', flex: 1, marginRight: 10, letterSpacing: -0.2 },
     badge: { borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6 },
-    badgeText: { color: '#fff', fontSize: 10, fontWeight: '900', letterSpacing: 0.5 },
-    cardInfo: { color: '#64748b', fontSize: 15, marginBottom: 8, fontWeight: '600' },
+    badgeText: { color: '#fff', fontSize: 10, fontFamily: 'Inter_800ExtraBold', letterSpacing: 0.5 },
+    cardInfo: { color: '#6b7280', fontSize: 15, marginBottom: 8, fontFamily: 'Inter_600SemiBold' },
     actionsBox: {
         flexDirection: 'row',
         gap: 12,
         marginTop: 20,
         borderTopWidth: 1,
-        borderTopColor: '#f1f5f9',
+        borderTopColor: '#f3f4f6',
         paddingTop: 20,
     },
     acceptActionBtn: {
         flex: 1, backgroundColor: '#f0fdf4',
         borderRadius: 14, padding: 16, alignItems: 'center',
-        borderWidth: 1, borderColor: '#dcfce7',
+        borderWidth: 1, borderColor: '#bbf7d0',
     },
-    acceptBtnLabel: { color: '#16a34a', fontWeight: '800', fontSize: 15 },
+    acceptBtnLabel: { color: '#16a34a', fontFamily: 'Inter_700Bold', fontSize: 15 },
     rejectActionBtn: {
-        flex: 1, backgroundColor: '#fff1f2',
+        flex: 1, backgroundColor: '#fef2f2',
         borderRadius: 14, padding: 16, alignItems: 'center',
     },
-    rejectBtnLabel: { color: '#e11d48', fontWeight: '800', fontSize: 15 },
+    rejectBtnLabel: { color: '#dc2626', fontFamily: 'Inter_700Bold', fontSize: 15 },
     completeActionBtn: {
-        flex: 1.5, backgroundColor: '#0f172a',
+        flex: 1.5, backgroundColor: '#2563eb',
         borderRadius: 14, padding: 16, alignItems: 'center',
-        shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1, shadowRadius: 8, elevation: 3,
     },
-    completeBtnLabel: { color: '#ffffff', fontWeight: '900', fontSize: 14 },
+    completeBtnLabel: { color: '#ffffff', fontFamily: 'Inter_800ExtraBold', fontSize: 14 },
     chatActionBtn: {
-        flex: 1, backgroundColor: '#f8fafc',
+        flex: 1, backgroundColor: '#f9fafb',
         borderRadius: 14, padding: 16, alignItems: 'center',
-        borderWidth: 1, borderColor: '#f1f5f9',
+        borderWidth: 1, borderColor: '#e5e7eb',
     },
-    chatBtnLabel: { color: '#0f172a', fontWeight: '800', fontSize: 15 },
+    chatBtnLabel: { color: '#111827', fontFamily: 'Inter_700Bold', fontSize: 15 },
     emptyContainer: { alignItems: 'center', marginTop: 100, paddingHorizontal: 40 },
     emptyIcon: { fontSize: 60, marginBottom: 20 },
-    emptyText: { color: '#0f172a', fontSize: 24, fontWeight: '900', letterSpacing: -0.5 },
-    emptyHint: { color: '#64748b', fontSize: 15, marginTop: 12, textAlign: 'center', lineHeight: 22, fontWeight: '500' },
+    emptyText: { color: '#111827', fontSize: 24, fontFamily: 'Inter_800ExtraBold', letterSpacing: -0.5 },
+    emptyHint: { color: '#6b7280', fontSize: 15, marginTop: 12, textAlign: 'center', lineHeight: 22, fontFamily: 'Inter_500Medium' },
     
     // Camera Styles
     cameraContainer: { flex: 1, backgroundColor: '#000' },
@@ -356,7 +350,7 @@ const styles = StyleSheet.create({
     cameraTip: {
         color: '#ffffff',
         fontSize: 14,
-        fontWeight: 'bold',
+        fontFamily: 'Inter_700Bold',
         marginBottom: 20,
         backgroundColor: 'rgba(0,0,0,0.5)',
         paddingHorizontal: 16,
@@ -402,7 +396,7 @@ const styles = StyleSheet.create({
     },
     verifBadge: {
         fontSize: 11,
-        fontWeight: '700',
+        fontFamily: 'Inter_700Bold',
         paddingHorizontal: 8,
         paddingVertical: 4,
         borderRadius: 8,
@@ -413,10 +407,10 @@ const styles = StyleSheet.create({
         color: '#16a34a'
     },
     verifPending: {
-        backgroundColor: '#f8fafc',
-        color: '#64748b',
+        backgroundColor: '#f9fafb',
+        color: '#6b7280',
         borderWidth: 1,
-        borderColor: '#e2e8f0'
+        borderColor: '#e5e7eb'
     },
     payoutBadge: {
         backgroundColor: '#eff6ff',
@@ -424,12 +418,12 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         marginTop: 10,
         borderWidth: 1,
-        borderColor: '#dbeafe',
+        borderColor: '#bfdbfe',
         alignItems: 'center'
     },
     payoutText: {
         color: '#2563eb',
-        fontWeight: '800',
+        fontFamily: 'Inter_800ExtraBold',
         fontSize: 13
     }
 });

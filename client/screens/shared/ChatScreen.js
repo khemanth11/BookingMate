@@ -9,7 +9,9 @@ import io from 'socket.io-client';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const API_URL = 'http://10.113.112.195:5000';
+import { BASE_URL } from '../../utils/config';
+
+const API_URL = BASE_URL;
 // Initialize socket outside component to prevent multiple connections
 const socket = io(API_URL);
 

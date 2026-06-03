@@ -8,6 +8,7 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../../context/AuthContext';
+import { BASE_URL } from '../../utils/config';
 
 export default function ProviderDashboardScreen() {
     const { listings, deleteListing } = useProvider();
@@ -23,12 +24,12 @@ export default function ProviderDashboardScreen() {
     const fetchStats = async () => {
         try {
             const token = await AsyncStorage.getItem('token');
-            const res = await axios.get('http://10.113.112.195:5000/api/bookings/stats', {
+            const res = await axios.get(`${BASE_URL}/api/bookings/stats`, {
                 headers: { 'x-auth-token': token }
             });
             setStats(res.data);
 
-            const walletRes = await axios.get('http://10.113.112.195:5000/api/wallet', {
+            const walletRes = await axios.get(`${BASE_URL}/api/wallet`, {
                 headers: { 'x-auth-token': token }
             });
             setWallet(walletRes.data);
@@ -164,7 +165,7 @@ export default function ProviderDashboardScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f5f6f8',
+        backgroundColor: '#ffffff',
         paddingHorizontal: 20,
         paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 10 : 0
     },
@@ -176,15 +177,15 @@ const styles = StyleSheet.create({
         marginBottom: 32,
     },
     headerTitleText: {
-        color: '#0f172a',
+        color: '#111827',
         fontSize: 28,
-        fontWeight: '900',
-        letterSpacing: -0.8
+        fontFamily: 'Inter_800ExtraBold',
+        letterSpacing: -0.5
     },
     headerSubText: {
-        color: '#64748b',
+        color: '#6b7280',
         fontSize: 15,
-        fontWeight: '600',
+        fontFamily: 'Inter_600SemiBold',
         marginTop: 2
     },
     topActionsRow: {
@@ -193,27 +194,27 @@ const styles = StyleSheet.create({
         gap: 12
     },
     bookingsActionBtn: {
-        backgroundColor: '#0f172a',
+        backgroundColor: '#2563eb',
         paddingHorizontal: 16,
         paddingVertical: 10,
         borderRadius: 12,
     },
     bookingsActionText: {
         color: '#ffffff',
-        fontWeight: '800',
+        fontFamily: 'Inter_700Bold',
         fontSize: 13
     },
     logoutActionBtn: {
-        backgroundColor: '#f8fafc',
+        backgroundColor: '#ffffff',
         paddingHorizontal: 16,
         paddingVertical: 10,
         borderRadius: 12,
         borderWidth: 1,
-        borderColor: '#f1f5f9',
+        borderColor: '#e5e7eb',
     },
     logoutActionText: {
         color: '#ef4444',
-        fontWeight: '700',
+        fontFamily: 'Inter_700Bold',
         fontSize: 13
     },
     statsRow: {
@@ -223,30 +224,25 @@ const styles = StyleSheet.create({
     },
     statCard: {
         flex: 1,
-        backgroundColor: '#ffffff',
-        borderRadius: 20,
+        backgroundColor: '#f9fafb',
+        borderRadius: 16,
         padding: 20,
         alignItems: 'center',
         borderWidth: 1,
-        borderColor: '#e2e8f0',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.05,
-        shadowRadius: 10,
-        elevation: 2,
+        borderColor: '#f3f4f6',
     },
-    statNum: { color: '#0f172a', fontSize: 24, fontWeight: '900', letterSpacing: -0.5 },
-    statLabel: { color: '#64748b', fontSize: 13, marginTop: 4, fontWeight: '700' },
+    statNum: { color: '#111827', fontSize: 24, fontFamily: 'Inter_800ExtraBold', letterSpacing: -0.5 },
+    statLabel: { color: '#6b7280', fontSize: 13, marginTop: 4, fontFamily: 'Inter_700Bold' },
     sectionHeaderView: { marginBottom: 20 },
-    sectionTitleText: { color: '#0f172a', fontSize: 24, fontWeight: '900', letterSpacing: -0.6 },
-    sectionSubText: { color: '#64748b', fontSize: 15, marginTop: 4, fontWeight: '500' },
+    sectionTitleText: { color: '#111827', fontSize: 24, fontFamily: 'Inter_800ExtraBold', letterSpacing: -0.5 },
+    sectionSubText: { color: '#6b7280', fontSize: 15, marginTop: 4, fontFamily: 'Inter_500Medium' },
     card: {
-        backgroundColor: '#ffffff',
-        borderRadius: 24,
+        backgroundColor: '#f9fafb',
+        borderRadius: 16,
         padding: 24,
         marginBottom: 20,
         borderWidth: 1,
-        borderColor: '#e2e8f0',
+        borderColor: '#f3f4f6',
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.05,
@@ -260,21 +256,21 @@ const styles = StyleSheet.create({
         marginBottom: 16,
     },
     cardTitle: {
-        color: '#0f172a',
+        color: '#111827',
         fontSize: 20,
-        fontWeight: '800',
+        fontFamily: 'Inter_800ExtraBold',
         flex: 1,
         marginRight: 10,
-        letterSpacing: -0.4
+        letterSpacing: -0.2
     },
     badge: {
         borderRadius: 10,
         paddingHorizontal: 12,
         paddingVertical: 6
     },
-    badgeText: { color: '#fff', fontSize: 10, fontWeight: '900', letterSpacing: 0.5, textTransform: 'uppercase' },
-    cardInfo: { color: '#64748b', fontSize: 15, marginBottom: 8, fontWeight: '600' },
-    cardDesc: { color: '#94a3b8', fontSize: 14, fontStyle: 'italic', marginTop: 8, lineHeight: 22, fontWeight: '500' },
+    badgeText: { color: '#fff', fontSize: 10, fontFamily: 'Inter_800ExtraBold', letterSpacing: 0.5, textTransform: 'uppercase' },
+    cardInfo: { color: '#6b7280', fontSize: 15, marginBottom: 8, fontFamily: 'Inter_600SemiBold' },
+    cardDesc: { color: '#9ca3af', fontSize: 14, fontStyle: 'italic', marginTop: 8, lineHeight: 22, fontFamily: 'Inter_500Medium' },
     actions: {
         flexDirection: 'row',
         gap: 12,
@@ -285,55 +281,45 @@ const styles = StyleSheet.create({
     },
     editBtn: {
         flex: 1,
-        backgroundColor: '#f8fafc',
+        backgroundColor: '#f9fafb',
         borderRadius: 14,
         padding: 16,
         alignItems: 'center',
         borderWidth: 1,
-        borderColor: '#f1f5f9',
+        borderColor: '#e5e7eb',
     },
-    editBtnText: { color: '#0f172a', fontWeight: '800', fontSize: 15 },
+    editBtnText: { color: '#111827', fontFamily: 'Inter_700Bold', fontSize: 15 },
     deleteBtn: {
         flex: 1,
-        backgroundColor: '#fff1f2',
+        backgroundColor: '#fef2f2',
         borderRadius: 14,
         padding: 16,
         alignItems: 'center',
     },
-    deleteBtnText: { color: '#e11d48', fontWeight: '800', fontSize: 15 },
+    deleteBtnText: { color: '#dc2626', fontFamily: 'Inter_700Bold', fontSize: 15 },
     emptyContainerView: { alignItems: 'center', marginTop: 100, paddingHorizontal: 40 },
     emptyIconBoxView: {
-        backgroundColor: '#ffffff',
+        backgroundColor: '#f9fafb',
         width: 100, height: 100,
         borderRadius: 50,
         justifyContent: 'center', alignItems: 'center',
         marginBottom: 24,
         borderWidth: 1,
-        borderColor: '#e2e8f0',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.05,
-        shadowRadius: 10,
-        elevation: 2,
+        borderColor: '#e5e7eb',
     },
     emptyIconText: { fontSize: 44 },
-    emptyTitleText: { color: '#0f172a', fontSize: 24, fontWeight: '900', letterSpacing: -0.5 },
-    emptyHintText: { color: '#64748b', fontSize: 15, marginTop: 12, textAlign: 'center', lineHeight: 24, fontWeight: '500' },
+    emptyTitleText: { color: '#111827', fontSize: 24, fontFamily: 'Inter_800ExtraBold', letterSpacing: -0.5 },
+    emptyHintText: { color: '#6b7280', fontSize: 15, marginTop: 12, textAlign: 'center', lineHeight: 24, fontFamily: 'Inter_500Medium' },
     fab: {
         position: 'absolute',
         right: 24,
         bottom: 40,
-        backgroundColor: '#0f172a',
+        backgroundColor: '#2563eb',
         width: 68,
         height: 68,
         borderRadius: 34,
         alignItems: 'center',
         justifyContent: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.2,
-        shadowRadius: 12,
-        elevation: 8,
     },
     fabIcon: { color: '#ffffff', fontSize: 36, fontWeight: '400' },
 });

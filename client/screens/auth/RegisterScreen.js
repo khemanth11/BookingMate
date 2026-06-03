@@ -2,12 +2,10 @@ import React, { useState } from 'react';
 import {
     View, Text, TextInput, TouchableOpacity,
     StyleSheet, StatusBar, KeyboardAvoidingView,
-    Platform, ScrollView
+    Platform, ScrollView, Alert, ActivityIndicator
 } from 'react-native';
-import { useAuth } from '../../context/AuthContext';
-
-import { Alert, ActivityIndicator } from 'react-native';
 import axios from 'axios';
+import { useAuth } from '../../context/AuthContext';
 
 export default function RegisterScreen({ navigation }) {
     const [name, setName] = useState('');
@@ -43,8 +41,8 @@ export default function RegisterScreen({ navigation }) {
             style={styles.container}
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
-            <StatusBar barStyle="dark-content" backgroundColor="#f5f6f8" />
-            <ScrollView showsVerticalScrollIndicator={false}>
+            <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
 
                 <View style={styles.header}>
                     <Text style={styles.appName}>EverythingBooking</Text>
@@ -143,60 +141,50 @@ export default function RegisterScreen({ navigation }) {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f5f6f8',
-        padding: 24,
+        backgroundColor: '#ffffff',
+    },
+    scrollContent: {
+        paddingHorizontal: 24,
+        paddingBottom: 40,
     },
     header: {
-        alignItems: 'center',
         marginTop: 60,
         marginBottom: 40,
     },
     appName: {
-        fontSize: 36,
-        fontWeight: '900',
-        color: '#0f172a',
-        letterSpacing: -1.5,
+        fontSize: 24,
+        fontFamily: 'Inter_800ExtraBold',
+        color: '#111827',
+        letterSpacing: -0.5,
     },
     tagline: {
-        color: '#64748b',
-        fontSize: 16,
+        color: '#6b7280',
+        fontSize: 14,
         marginTop: 4,
-        fontWeight: '600',
-        letterSpacing: 0.2,
+        fontFamily: 'Inter_500Medium',
     },
     authCard: {
         backgroundColor: '#ffffff',
-        borderRadius: 32,
-        padding: 32,
         marginBottom: 40,
-        borderWidth: 1,
-        borderColor: '#e2e8f0',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 10 },
-        shadowOpacity: 0.1,
-        shadowRadius: 20,
-        elevation: 5,
     },
     title: {
-        fontSize: 28,
-        fontWeight: '900',
-        color: '#0f172a',
-        marginBottom: 6,
-        letterSpacing: -0.6,
+        fontSize: 36,
+        fontFamily: 'Inter_800ExtraBold',
+        color: '#111827',
+        marginBottom: 8,
+        letterSpacing: -1,
     },
     subtitle: {
-        color: '#64748b',
+        color: '#6b7280',
         fontSize: 15,
-        marginBottom: 28,
-        fontWeight: '500',
+        marginBottom: 32,
+        fontFamily: 'Inter_500Medium',
     },
     roleLabel: {
-        color: '#111827',
+        color: '#374151',
         fontSize: 14,
-        fontWeight: '600',
+        fontFamily: 'Inter_600SemiBold',
         marginBottom: 12,
-        textTransform: 'uppercase',
-        letterSpacing: 0.5,
     },
     roleContainer: {
         flexDirection: 'row',
@@ -205,77 +193,75 @@ const styles = StyleSheet.create({
     },
     roleBtn: {
         flex: 1,
-        backgroundColor: '#ffffff',
-        borderRadius: 20,
-        padding: 20,
-        alignItems: 'center',
-        borderWidth: 1,
-        borderColor: '#e2e8f0',
+        backgroundColor: '#f9fafb',
+        borderRadius: 16,
+        padding: 16,
+        borderWidth: 2,
+        borderColor: '#f3f4f6',
     },
     roleActive: {
-        borderColor: '#0f172a',
-        backgroundColor: '#f8fafc',
-        borderWidth: 2,
+        borderColor: '#111827',
+        backgroundColor: '#ffffff',
     },
-    roleIconText: {
-        fontSize: 28,
-        marginBottom: 8,
+    roleIcon: {
+        fontSize: 24,
+        marginBottom: 6,
     },
     roleText: {
-        color: '#64748b',
-        fontWeight: '700',
+        color: '#6b7280',
+        fontFamily: 'Inter_500Medium',
         fontSize: 14,
     },
     roleTextActive: {
-        color: '#0f172a',
-        fontWeight: '900',
+        color: '#111827',
+        fontFamily: 'Inter_700Bold',
+    },
+    roleDesc: {
+        color: '#9ca3af',
+        fontSize: 12,
+        marginTop: 4,
+        fontFamily: 'Inter_500Medium',
     },
     roleDescText: {
-        color: '#94a3b8',
-        fontSize: 11,
+        color: '#9ca3af',
+        fontSize: 12,
         marginTop: 4,
-        textAlign: 'center',
-        fontWeight: '600',
+        fontFamily: 'Inter_500Medium',
     },
     input: {
-        backgroundColor: '#f8fafc',
-        color: '#0f172a',
-        borderRadius: 20,
-        paddingHorizontal: 20,
-        paddingVertical: 16,
+        backgroundColor: '#f9fafb',
+        color: '#111827',
+        borderRadius: 12,
+        paddingHorizontal: 16,
+        paddingVertical: 18,
         marginBottom: 16,
         fontSize: 16,
+        fontFamily: 'Inter_500Medium',
         borderWidth: 1,
-        borderColor: '#f1f5f9',
-        fontWeight: '500',
+        borderColor: '#f3f4f6',
     },
     registerBtn: {
-        backgroundColor: '#0f172a',
-        borderRadius: 20,
-        padding: 18,
+        backgroundColor: '#111827',
+        borderRadius: 12,
+        paddingVertical: 18,
         alignItems: 'center',
         marginTop: 12,
         marginBottom: 24,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-        elevation: 3,
     },
     registerBtnText: {
         color: '#ffffff',
-        fontWeight: '900',
+        fontFamily: 'Inter_700Bold',
         fontSize: 16,
-        letterSpacing: 0.5,
     },
     footerTextText: {
-        color: '#64748b',
+        color: '#6b7280',
         textAlign: 'center',
         fontSize: 15,
-        fontWeight: '500',
+        fontFamily: 'Inter_500Medium',
     },
     footerLinkText: {
-        color: '#0f172a',
-        fontWeight: '800',
+        color: '#111827',
+        fontFamily: 'Inter_700Bold',
+        textDecorationLine: 'underline',
     },
 });

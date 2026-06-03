@@ -4,8 +4,9 @@ import {
     SafeAreaView, StatusBar, ScrollView, FlatList, ActivityIndicator
 } from 'react-native';
 import axios from 'axios';
+import { BASE_URL } from '../../utils/config';
 
-const API_URL = 'http://10.113.112.195:5000/api';
+const API_URL = `${BASE_URL}/api`;
 
 export default function ProfileScreen({ route, navigation }) {
     const { providerId, providerName } = route.params;

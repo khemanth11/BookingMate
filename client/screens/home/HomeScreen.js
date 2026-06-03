@@ -9,6 +9,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { BASE_URL } from '../../utils/config';
 
 
 const CATEGORIES = [
@@ -31,7 +32,7 @@ export default function HomeScreen() {
         try {
             const token = await AsyncStorage.getItem('token');
             if (!token) return;
-            const res = await axios.get('http://10.113.112.195:5000/api/listings/recommendations', {
+            const res = await axios.get(`${BASE_URL}/api/listings/recommendations`, {
                 headers: { 'x-auth-token': token }
             });
             setRecommendations(res.data);
@@ -89,24 +90,27 @@ export default function HomeScreen() {
 
                 <View style={styles.quickActionsRow}>
                     <TouchableOpacity
-                        style={[styles.quickActionBtn, { backgroundColor: '#1c3144' }]}
+                        style={styles.quickActionBtn}
                         onPress={() => navigation.navigate('ConsumerBookings')}
                     >
-                        <Text style={[styles.quickActionText, { color: '#f8f9fa' }]}>{t('my_bookings')}</Text>
+                        <Text style={styles.quickActionIcon}>📅</Text>
+                        <Text style={styles.quickActionText}>{t('my_bookings')}</Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity
-                        style={[styles.quickActionBtn, { backgroundColor: '#2d6a4f' }]}
+                        style={styles.quickActionBtn}
                         onPress={() => navigation.navigate('MapScreen')}
                     >
-                        <Text style={[styles.quickActionText, { color: '#f8f9fa' }]}>🗺️ {t('map')}</Text>
+                        <Text style={styles.quickActionIcon}>🗺️</Text>
+                        <Text style={styles.quickActionText}>{t('map')}</Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity
-                        style={[styles.quickActionBtn, { backgroundColor: '#b5838d' }]}
+                        style={styles.quickActionBtn}
                         onPress={() => navigation.navigate('FavoritesScreen')}
                     >
-                        <Text style={[styles.quickActionText, { color: '#f8f9fa' }]}>❤️ {t('wishlist')}</Text>
+                        <Text style={styles.quickActionIcon}>❤️</Text>
+                        <Text style={styles.quickActionText}>{t('wishlist')}</Text>
                     </TouchableOpacity>
                 </View>
 
@@ -127,16 +131,18 @@ export default function HomeScreen() {
                                     style={styles.recCard}
                                     onPress={() => navigation.navigate('ListingDetail', { listing: item, category: { name: item.category, icon: '✨' } })}
                                 >
-                                    <View style={styles.recHeader}>
-                                        <View style={styles.recPriceTag}>
-                                            <Text style={styles.recPrice}>₹{item.price}</Text>
-                                        </View>
-                                        <Text style={styles.recRating}>★ {item.averageRating?.toFixed(1) || 'New'}</Text>
-                                    </View>
                                     <Text style={styles.recName} numberOfLines={1}>{item.name}</Text>
-                                    <View style={styles.recFooter}>
-                                        <Text style={styles.recProvider} numberOfLines={1}>👤 {item.providerId?.name || 'Expert'}</Text>
+                                    <View style={styles.recProviderRow}>
+                                        <Text style={styles.recProvider} numberOfLines={1}>{item.providerId?.name || 'Local Expert'}</Text>
                                         {item.providerId?.isVerified && <Text style={styles.recVerified}>✅</Text>}
+                                    </View>
+                                    
+                                    <View style={styles.recFooter}>
+                                        <Text style={styles.recPrice}>₹{item.price}</Text>
+                                        <View style={styles.recRatingRow}>
+                                            <Text style={styles.recRatingStar}>★</Text>
+                                            <Text style={styles.recRatingText}>{item.averageRating?.toFixed(1) || 'New'}</Text>
+                                        </View>
                                     </View>
                                 </TouchableOpacity>
                             )}
@@ -174,7 +180,7 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f5f6f8',
+        backgroundColor: '#f8fafc',
         paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 10 : 0
     },
     scrollContent: {
@@ -206,23 +212,23 @@ const styles = StyleSheet.create({
     },
     langBtnText: {
         fontSize: 13,
-        fontWeight: 'bold',
+        fontFamily: 'Inter_700Bold',
         color: '#111827'
     },
     welcomeText: {
         color: '#6b7280',
         fontSize: 16,
-        fontWeight: '500',
+        fontFamily: 'Inter_500Medium',
         marginBottom: 2
     },
     userName: {
         fontSize: 28,
-        fontWeight: '900',
+        fontFamily: 'Inter_800ExtraBold',
         color: '#111827',
         letterSpacing: -0.5,
     },
     logoutBtn: {
-        backgroundColor: '#fee2e2',
+        backgroundColor: '#ffffff',
         width: 44,
         height: 44,
         borderRadius: 14,
@@ -230,7 +236,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginLeft: 12,
         borderWidth: 1,
-        borderColor: '#fecaca',
+        borderColor: '#e5e7eb',
     },
     logoutIcon: {
         fontSize: 18,
@@ -280,7 +286,7 @@ const styles = StyleSheet.create({
     searchText: {
         color: '#6b7280',
         fontSize: 15,
-        fontWeight: '500',
+        fontFamily: 'Inter_500Medium',
     },
     quickActionsRow: {
         flexDirection: 'row',
@@ -291,15 +297,21 @@ const styles = StyleSheet.create({
     },
     quickActionBtn: {
         flex: 1,
-        backgroundColor: '#111827',
+        backgroundColor: '#ffffff',
         paddingVertical: 16,
         borderRadius: 16,
         alignItems: 'center',
+        borderWidth: 1,
+        borderColor: '#e5e7eb',
+    },
+    quickActionIcon: {
+        fontSize: 20,
+        marginBottom: 8,
     },
     quickActionText: {
-        color: '#ffffff',
-        fontWeight: 'bold',
-        fontSize: 15,
+        color: '#111827',
+        fontFamily: 'Inter_700Bold',
+        fontSize: 12,
     },
     sectionHeader: {
         marginBottom: 16,
@@ -307,14 +319,14 @@ const styles = StyleSheet.create({
     sectionTitle: {
         color: '#111827',
         fontSize: 22,
-        fontWeight: '800',
-        letterSpacing: 0.3,
+        fontFamily: 'Inter_800ExtraBold',
+        letterSpacing: -0.2,
     },
     sectionSubtitle: {
         color: '#6b7280',
         fontSize: 14,
         marginTop: 4,
-        fontWeight: '500',
+        fontFamily: 'Inter_500Medium',
     },
     grid: {
         flexDirection: 'row',
@@ -325,13 +337,10 @@ const styles = StyleSheet.create({
     card: {
         width: '47.5%',
         backgroundColor: '#ffffff',
-        borderRadius: 20,
-        padding: 18,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.08,
-        shadowRadius: 4,
-        elevation: 2,
+        borderRadius: 16,
+        padding: 16,
+        borderWidth: 1,
+        borderColor: '#f1f5f9',
     },
     iconContainer: {
         marginBottom: 14,
@@ -341,14 +350,15 @@ const styles = StyleSheet.create({
     },
     cardName: {
         color: '#111827',
-        fontWeight: '700',
-        fontSize: 16,
+        fontFamily: 'Inter_800ExtraBold',
+        fontSize: 15,
         marginBottom: 6,
     },
     cardDesc: {
         color: '#6b7280',
-        fontSize: 13,
+        fontSize: 12,
         lineHeight: 18,
+        fontFamily: 'Inter_400Regular',
     },
     recContainer: {
         marginBottom: 32,
@@ -358,62 +368,57 @@ const styles = StyleSheet.create({
     },
     recCard: {
         backgroundColor: '#ffffff',
-        borderRadius: 24,
+        borderRadius: 16,
         padding: 20,
-        width: 200,
+        width: 240,
         marginRight: 16,
         borderWidth: 1,
-        borderColor: '#e5e7eb',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.05,
-        shadowRadius: 10,
-        elevation: 3,
-    },
-    recHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 16,
-    },
-    recPriceTag: {
-        backgroundColor: '#111827',
-        paddingHorizontal: 10,
-        paddingVertical: 5,
-        borderRadius: 10,
-    },
-    recPrice: {
-        fontSize: 14,
-        fontWeight: '900',
-        color: '#ffffff',
-    },
-    recRating: {
-        fontSize: 13,
-        fontWeight: '700',
-        color: '#f59e0b',
+        borderColor: '#f1f5f9',
     },
     recName: {
-        fontSize: 17,
-        fontWeight: '800',
+        fontSize: 18,
+        fontFamily: 'Inter_800ExtraBold',
         color: '#111827',
-        marginBottom: 12,
-        letterSpacing: -0.2,
+        marginBottom: 4,
+        letterSpacing: -0.5,
     },
-    recFooter: {
+    recProviderRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        borderTopWidth: 1,
-        borderTopColor: '#f3f4f6',
-        paddingTop: 12,
+        marginBottom: 20,
     },
     recProvider: {
-        fontSize: 13,
+        fontSize: 14,
         color: '#6b7280',
-        fontWeight: '600',
-        flex: 1,
+        fontFamily: 'Inter_500Medium',
     },
     recVerified: {
         fontSize: 12,
-        marginLeft: 4,
+        marginLeft: 6,
+    },
+    recFooter: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-end',
+        marginTop: 'auto',
+    },
+    recPrice: {
+        fontSize: 18,
+        fontFamily: 'Inter_800ExtraBold',
+        color: '#111827',
+    },
+    recRatingRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    recRatingStar: {
+        fontSize: 14,
+        color: '#f59e0b',
+        marginRight: 4,
+    },
+    recRatingText: {
+        fontSize: 14,
+        fontFamily: 'Inter_700Bold',
+        color: '#111827',
     },
 });

@@ -42,7 +42,7 @@ router.post('/', auth, async (req, res) => {
         // Check booking exists and is completed
         const booking = await Booking.findById(bookingId);
         if (!booking) return res.status(404).json({ message: 'Booking not found' });
-        if (booking.status !== 'completed') {
+        if (booking.status !== 'completed' && booking.status !== 'verified') {
             return res.status(400).json({ message: 'Can only review completed bookings' });
         }
         if (booking.userId.toString() !== req.user.id) {
