@@ -57,6 +57,7 @@ const bookingSchema = new mongoose.Schema({
     // Dual Verification
     consumerVerified: { type: Boolean, default: false },
     providerVerified: { type: Boolean, default: false }, // AI verification
+    payoutOtp: { type: String, default: null },
     payoutReleased: { type: Boolean, default: false },
     amountPaid: {
         type: Number,

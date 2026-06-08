@@ -145,7 +145,7 @@ export default function ConsumerBookingsScreen() {
                 <Text style={styles.cardInfo}>🧑‍🔧 Provider: {item.providerId?.name || 'Local Expert'}</Text>
                 <Text style={styles.cardInfo}>📅 Date: {item.date}</Text>
                 <Text style={styles.cardInfo}>⏰ Time: {item.startTime} - {item.endTime}</Text>
-                <Text style={styles.cardInfo}>💰 Price: ₹{item.listingId?.price || 'Unlisted'}</Text>
+                <Text style={styles.cardInfo}>💰 Price: {item.listingId?.price || 'Unlisted'}</Text>
 
                 {item.status === 'pending' && (
                     <Text style={styles.statusMsg}>Waiting for the provider to confirm your request.</Text>
@@ -172,13 +172,16 @@ export default function ConsumerBookingsScreen() {
                     </TouchableOpacity>
                 )}
 
-                {item.status === 'completed' && !item.consumerVerified && (
-                    <TouchableOpacity
-                        style={styles.verifyActionBtn}
-                        onPress={() => handleVerifyCompletion(item._id)}
-                    >
-                        <Text style={styles.verifyActionBtnText}>✅ Verify & Release Funds</Text>
-                    </TouchableOpacity>
+                {item.status === 'completed' && item.payoutOtp && !item.consumerVerified && (
+                    <View style={styles.otpCard}>
+                        <Text style={styles.otpCardTitle}>🔑 Secure Escrow Release OTP</Text>
+                        <Text style={styles.otpCardDesc}>
+                            Share this OTP with the provider only after verifying that the work has been completed to your satisfaction:
+                        </Text>
+                        <View style={styles.otpValueContainer}>
+                            <Text style={styles.otpValue}>{item.payoutOtp}</Text>
+                        </View>
+                    </View>
                 )}
 
                 {item.payoutReleased && (
@@ -504,5 +507,51 @@ const styles = StyleSheet.create({
         color: '#6b7280',
         fontSize: 14,
         fontFamily: 'Inter_600SemiBold',
+    },
+    otpCard: {
+        backgroundColor: '#fffbeb',
+        borderRadius: 16,
+        padding: 20,
+        marginTop: 16,
+        borderWidth: 1,
+        borderColor: '#fde68a',
+        shadowColor: '#b45309',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 4,
+        elevation: 1,
+    },
+    otpCardTitle: {
+        color: '#b45309',
+        fontFamily: 'Inter_800ExtraBold',
+        fontSize: 16,
+        marginBottom: 8,
+    },
+    otpCardDesc: {
+        color: '#78350f',
+        fontSize: 13,
+        fontFamily: 'Inter_500Medium',
+        lineHeight: 18,
+        marginBottom: 16,
+    },
+    otpValueContainer: {
+        backgroundColor: '#ffffff',
+        borderRadius: 12,
+        paddingVertical: 12,
+        paddingHorizontal: 24,
+        alignSelf: 'center',
+        borderWidth: 1.5,
+        borderColor: '#fcd34d',
+        shadowColor: '#b45309',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 6,
+        elevation: 3,
+    },
+    otpValue: {
+        fontSize: 28,
+        fontFamily: 'Inter_800ExtraBold',
+        color: '#b45309',
+        letterSpacing: 6,
     },
 });

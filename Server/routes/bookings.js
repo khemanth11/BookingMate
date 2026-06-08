@@ -6,6 +6,7 @@ import jwt from 'jsonwebtoken';
 import { sendNotification } from '../utils/notifications.js';
 import User from '../models/User.js';
 import Wallet from '../models/Wallet.js';
+import Config from '../models/Config.js';
 
 const router = express.Router();
 
@@ -228,8 +229,60 @@ router.put('/:id/consumer-verify', auth, async (req, res) => {
     }
 });
 
+// @route   PUT api/bookings/:id/verify-otp
+// @desc    Verify consumer OTP to release escrow payment
+// @access  Private (Provider only)
+router.put('/:id/verify-otp', auth, async (req, res) => {
+    try {
+        if (req.user.role !== 'provider') {
+            return res.status(403).json({ message: 'Only providers can verify OTP' });
+        }
+
+        const { otp } = req.body;
+        if (!otp) {
+            return res.status(400).json({ message: 'OTP is required' });
+        }
+
+        let booking = await Booking.findById(req.params.id);
+        if (!booking) {
+            return res.status(404).json({ message: 'Booking not found' });
+        }
+
+        if (booking.providerId.toString() !== req.user.id) {
+            return res.status(401).json({ message: 'Not authorized to verify this booking' });
+        }
+
+        if (booking.payoutReleased) {
+            return res.status(400).json({ message: 'Payout has already been released' });
+        }
+
+        if (!booking.payoutOtp) {
+            return res.status(400).json({ message: 'No OTP generated for this booking' });
+        }
+
+        if (booking.payoutOtp !== otp.toString().trim()) {
+            return res.status(400).json({ message: 'Invalid OTP. Please try again.' });
+        }
+
+        // Set consumerVerified to true
+        booking.consumerVerified = true;
+        await booking.save();
+
+        // Release funds
+        const updatedBooking = await checkAndReleaseFunds(booking);
+
+        res.json({
+            message: 'OTP verified and payout released successfully!',
+            booking: updatedBooking
+        });
+    } catch (err) {
+        console.error('Verify OTP error:', err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
 // Helper: Check and Release Funds
-async function checkAndReleaseFunds(booking) {
+export async function checkAndReleaseFunds(booking) {
     if (booking.consumerVerified && booking.providerVerified && !booking.payoutReleased) {
         // Find or create provider wallet
         let wallet = await Wallet.findOne({ providerId: booking.providerId });
@@ -255,9 +308,24 @@ async function checkAndReleaseFunds(booking) {
             numericAmount = amount;
         }
 
-        wallet.balance += numericAmount;
+        // Fetch commission rate from Config database
+        let commissionRate = 10; // Default 10%
+        try {
+            const config = await Config.findOne({ key: 'global' });
+            if (config) {
+                commissionRate = config.commissionRate;
+            }
+        } catch (e) {
+            console.error('Error fetching platform config, using 10% default:', e);
+        }
+
+        // Calculate platform commission fee and provider earnings
+        const commissionFee = (numericAmount * commissionRate) / 100;
+        const netEarnings = numericAmount - commissionFee;
+
+        wallet.balance += netEarnings;
         wallet.transactions.push({
-            amount: numericAmount,
+            amount: netEarnings,
             type: 'credit',
             status: 'completed',
             bookingId: booking._id,

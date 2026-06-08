@@ -69,7 +69,7 @@ export default function ProviderDashboardScreen() {
                 </View>
             </View>
             <Text style={styles.cardInfo}>📂 {item.category}</Text>
-            <Text style={styles.cardInfo}>💰 ₹{item.price}</Text>
+            <Text style={styles.cardInfo}>💰 {item.price}</Text>
             {item.description ? (
                 <Text style={styles.cardDesc}>{item.description}</Text>
             ) : null}
@@ -115,7 +115,7 @@ export default function ProviderDashboardScreen() {
 
             {/* Stats */}
             <View style={styles.statsRow}>
-                <TouchableOpacity 
+                <TouchableOpacity
                     style={styles.statCard}
                     onPress={() => navigation.navigate('WalletScreen')}
                 >

@@ -87,44 +87,44 @@ export default function CategoryListingScreen({ route, navigation }) {
                 <ActivityIndicator size="large" color="#1c3144" style={{ marginTop: 50 }} />
             ) : (
 
-                    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-                        {listings.map((item) => (
-                            <TouchableOpacity
-                                key={item._id || item.id}
-                                style={styles.listingCard}
-                                onPress={() => navigation.navigate('ListingDetail', { listing: item, category })}
-                            >
-                                <View style={styles.cardHeader}>
-                                    <View style={styles.cardLeft}>
-                                        <Text style={styles.itemName}>{item.name}</Text>
-                                        <View style={styles.providerTag}>
-                                            <Text style={styles.providerText}>👤 {item.providerId?.name || 'Expert'}</Text>
-                                            {item.providerId?.isVerified && <Text style={styles.verifiedIcon}>✅</Text>}
-                                        </View>
+                <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+                    {listings.map((item) => (
+                        <TouchableOpacity
+                            key={item._id || item.id}
+                            style={styles.listingCard}
+                            onPress={() => navigation.navigate('ListingDetail', { listing: item, category })}
+                        >
+                            <View style={styles.cardHeader}>
+                                <View style={styles.cardLeft}>
+                                    <Text style={styles.itemName}>{item.name}</Text>
+                                    <View style={styles.providerTag}>
+                                        <Text style={styles.providerText}>👤 {item.providerId?.name || 'Expert'}</Text>
+                                        {item.providerId?.isVerified && <Text style={styles.verifiedIcon}>✅</Text>}
                                     </View>
-                                    <TouchableOpacity 
-                                        onPress={() => handleToggleFavorite(item._id || item.id)}
-                                        style={styles.favAction}
-                                    >
-                                        <Text style={styles.favIcon}>
-                                            {favoriteIds.includes(item._id || item.id) ? '❤️' : '🤍'}
-                                        </Text>
-                                    </TouchableOpacity>
                                 </View>
+                                <TouchableOpacity
+                                    onPress={() => handleToggleFavorite(item._id || item.id)}
+                                    style={styles.favAction}
+                                >
+                                    <Text style={styles.favIcon}>
+                                        {favoriteIds.includes(item._id || item.id) ? '❤️' : '🤍'}
+                                    </Text>
+                                </TouchableOpacity>
+                            </View>
 
-                                <View style={styles.cardFooter}>
-                                    <View style={styles.priceBadge}>
-                                        <Text style={styles.priceText}>₹{item.price}</Text>
-                                    </View>
-                                    <View style={[styles.statusBadge, { backgroundColor: item.available ? '#dcfce7' : '#fee2e2' }]}>
-                                        <Text style={[styles.statusBadgeText, { color: item.available ? '#166534' : '#991b1b' }]}>
-                                            {item.available ? '● Available' : '● Busy'}
-                                        </Text>
-                                    </View>
+                            <View style={styles.cardFooter}>
+                                <View style={styles.priceBadge}>
+                                    <Text style={styles.priceText}>{item.price}</Text>
                                 </View>
-                            </TouchableOpacity>
-                        ))}
-                    </ScrollView>
+                                <View style={[styles.statusBadge, { backgroundColor: item.available ? '#dcfce7' : '#fee2e2' }]}>
+                                    <Text style={[styles.statusBadgeText, { color: item.available ? '#166534' : '#991b1b' }]}>
+                                        {item.available ? '● Available' : '● Busy'}
+                                    </Text>
+                                </View>
+                            </View>
+                        </TouchableOpacity>
+                    ))}
+                </ScrollView>
             )}
         </SafeAreaView>
     );

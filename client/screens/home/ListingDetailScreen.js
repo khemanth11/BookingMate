@@ -126,7 +126,7 @@ export default function ListingDetailScreen({ route, navigation }) {
           <View style={styles.statsRow}>
             <View style={styles.priceContainer}>
               <Text style={styles.priceLabel}>Price</Text>
-              <Text style={styles.priceValue}>₹{listing.price}</Text>
+              <Text style={styles.priceValue}>{listing.price}</Text>
             </View>
             <View style={styles.divider} />
             <View style={styles.ratingContainer}>

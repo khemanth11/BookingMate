@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
     View, Text, StyleSheet, TouchableOpacity,
     FlatList, SafeAreaView, StatusBar, Alert, ActivityIndicator,
-    Modal, Image
+    Modal, Image, TextInput
 } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import axios from 'axios';
@@ -23,6 +23,37 @@ export default function ProviderBookingsScreen() {
     const [cameraRef, setCameraRef] = useState(null);
     const [verifyingBookingId, setVerifyingBookingId] = useState(null);
     const [isVerifying, setIsVerifying] = useState(false);
+    const [otpInputs, setOtpInputs] = useState({});
+    const [isSubmittingOtp, setIsSubmittingOtp] = useState({});
+
+    const handleVerifyOtp = async (bookingId) => {
+        const otp = otpInputs[bookingId];
+        if (!otp || otp.length !== 4) {
+            Alert.alert('Invalid OTP', 'Please enter a 4-digit OTP code.');
+            return;
+        }
+
+        try {
+            setIsSubmittingOtp(prev => ({ ...prev, [bookingId]: true }));
+            const token = await AsyncStorage.getItem('token');
+            const res = await axios.put(`${API_URL}/${bookingId}/verify-otp`, { otp }, {
+                headers: { 'x-auth-token': token }
+            });
+
+            Alert.alert('🎉 Success', res.data.message || 'OTP verified and payout released!');
+            setOtpInputs(prev => {
+                const copy = { ...prev };
+                delete copy[bookingId];
+                return copy;
+            });
+            fetchBookings();
+        } catch (error) {
+            console.error('OTP Verification error:', error);
+            Alert.alert('Error', error.response?.data?.message || 'Failed to verify OTP.');
+        } finally {
+            setIsSubmittingOtp(prev => ({ ...prev, [bookingId]: false }));
+        }
+    };
 
     const fetchBookings = useCallback(async () => {
         try {
@@ -138,7 +169,7 @@ export default function ProviderBookingsScreen() {
                 <Text style={styles.cardInfo}>📞 Phone: {item.userId?.phone || 'N/A'}</Text>
                 <Text style={styles.cardInfo}>📅 Date: {item.date}</Text>
                 <Text style={styles.cardInfo}>⏰ Time: {item.startTime} - {item.endTime}</Text>
-                <Text style={styles.cardInfo}>💰 Price: ₹{item.listingId?.price || 'N/A'}</Text>
+                <Text style={styles.cardInfo}>💰 Price: {item.listingId?.price || 'N/A'}</Text>
 
                 <View style={styles.verificationRow}>
                     <Text style={[styles.verifBadge, item.providerVerified ? styles.verifSuccess : styles.verifPending]}>
@@ -152,6 +183,37 @@ export default function ProviderBookingsScreen() {
                 {item.payoutReleased && (
                     <View style={styles.payoutBadge}>
                         <Text style={styles.payoutText}>💰 Payout Released to Wallet</Text>
+                    </View>
+                )}
+
+                {item.status === 'completed' && !item.payoutReleased && (
+                    <View style={styles.otpInputContainer}>
+                        <Text style={styles.otpInputTitle}>🔑 Enter Customer OTP</Text>
+                        <Text style={styles.otpInputDesc}>
+                            Ask the customer for the 4-digit code shown on their screen to release the escrow payout.
+                        </Text>
+                        <View style={styles.otpRow}>
+                            <TextInput
+                                style={styles.otpTextInput}
+                                placeholder="4-Digit OTP"
+                                placeholderTextColor="#9ca3af"
+                                keyboardType="number-pad"
+                                maxLength={4}
+                                value={otpInputs[item._id] || ''}
+                                onChangeText={(val) => setOtpInputs(prev => ({ ...prev, [item._id]: val }))}
+                            />
+                            <TouchableOpacity
+                                style={[styles.otpSubmitBtn, (!otpInputs[item._id] || otpInputs[item._id].length !== 4) && { opacity: 0.6 }]}
+                                disabled={!otpInputs[item._id] || otpInputs[item._id].length !== 4 || isSubmittingOtp[item._id]}
+                                onPress={() => handleVerifyOtp(item._id)}
+                            >
+                                {isSubmittingOtp[item._id] ? (
+                                    <ActivityIndicator size="small" color="#ffffff" />
+                                ) : (
+                                    <Text style={styles.otpSubmitBtnText}>Verify & Payout</Text>
+                                )}
+                            </TouchableOpacity>
+                        </View>
                     </View>
                 )}
 
@@ -245,14 +307,14 @@ export default function ProviderBookingsScreen() {
                                 <ActivityIndicator size="large" color="#ffffff" />
                             ) : (
                                 <View style={styles.cameraActions}>
-                                    <TouchableOpacity 
-                                        style={styles.captureBtn} 
+                                    <TouchableOpacity
+                                        style={styles.captureBtn}
                                         onPress={takePictureAndVerify}
                                     >
                                         <View style={styles.captureInner} />
                                     </TouchableOpacity>
-                                    <TouchableOpacity 
-                                        style={styles.cancelCameraBtn} 
+                                    <TouchableOpacity
+                                        style={styles.cancelCameraBtn}
                                         onPress={() => setIsCameraVisible(false)}
                                     >
                                         <Text style={styles.cancelCameraText}>Cancel</Text>
@@ -336,7 +398,7 @@ const styles = StyleSheet.create({
     emptyIcon: { fontSize: 60, marginBottom: 20 },
     emptyText: { color: '#111827', fontSize: 24, fontFamily: 'Inter_800ExtraBold', letterSpacing: -0.5 },
     emptyHint: { color: '#6b7280', fontSize: 15, marginTop: 12, textAlign: 'center', lineHeight: 22, fontFamily: 'Inter_500Medium' },
-    
+
     // Camera Styles
     cameraContainer: { flex: 1, backgroundColor: '#000' },
     camera: { flex: 1 },
@@ -425,5 +487,58 @@ const styles = StyleSheet.create({
         color: '#2563eb',
         fontFamily: 'Inter_800ExtraBold',
         fontSize: 13
-    }
+    },
+    otpInputContainer: {
+        backgroundColor: '#f8fafc',
+        borderRadius: 14,
+        padding: 16,
+        marginTop: 16,
+        borderWidth: 1,
+        borderColor: '#e2e8f0',
+    },
+    otpInputTitle: {
+        color: '#1e293b',
+        fontFamily: 'Inter_800ExtraBold',
+        fontSize: 15,
+        marginBottom: 6,
+    },
+    otpInputDesc: {
+        color: '#64748b',
+        fontSize: 12,
+        fontFamily: 'Inter_500Medium',
+        lineHeight: 18,
+        marginBottom: 12,
+    },
+    otpRow: {
+        flexDirection: 'row',
+        gap: 10,
+        alignItems: 'center',
+    },
+    otpTextInput: {
+        flex: 1,
+        backgroundColor: '#ffffff',
+        borderRadius: 10,
+        borderWidth: 1.5,
+        borderColor: '#cbd5e1',
+        paddingVertical: 10,
+        paddingHorizontal: 16,
+        fontSize: 16,
+        fontFamily: 'Inter_700Bold',
+        color: '#0f172a',
+        textAlign: 'center',
+        letterSpacing: 4,
+    },
+    otpSubmitBtn: {
+        backgroundColor: '#10b981',
+        borderRadius: 10,
+        paddingVertical: 12,
+        paddingHorizontal: 16,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    otpSubmitBtnText: {
+        color: '#ffffff',
+        fontFamily: 'Inter_800ExtraBold',
+        fontSize: 14,
+    },
 });

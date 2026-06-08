@@ -13,12 +13,20 @@ import { BASE_URL } from '../../utils/config';
 
 
 const CATEGORIES = [
-    { id: '1', name: 'Farm Animals', icon: '🐄', desc: 'Buffalo, Cow, Goat', color: '#764040ff' },
-    { id: '2', name: 'Medical', icon: '💊', desc: 'Medicine delivery nearby', color: '#1a1a5e' },
-    { id: '3', name: 'Farm Equipment', icon: '🚜', desc: 'Tractor, Tools', color: '#5e3a1a' },
-    { id: '4', name: 'Farm Labor', icon: '👨‍🌾', desc: 'Daily workers', color: '#4a1a5e' },
-    { id: '5', name: 'Water Supply', icon: '💧', desc: 'Water tanker delivery', color: '#1a4a5e' },
-    { id: '6', name: 'Seeds & Crops', icon: '🌾', desc: 'Buy/sell seeds', color: '#5e4a1a' },
+    { id: '1', name: 'Farm Animals', icon: '🐄', desc: 'Buffalo, Cow, Goat, Vet', color: '#764040' },
+    { id: '2', name: 'Medical', icon: '💊', desc: 'Clinics & Medicine Delivery', color: '#1a1a5e' },
+    { id: '3', name: 'Farm Equipment', icon: '🚜', desc: 'Tractors, Harvesters, Tools', color: '#5e3a1a' },
+    { id: '4', name: 'Farm Labor', icon: '👨‍🌾', desc: 'Daily labor & sowing help', color: '#4a1a5e' },
+    { id: '5', name: 'Water Supply', icon: '💧', desc: 'Water tankers & irrigation', color: '#1a4a5e' },
+    { id: '6', name: 'Seeds & Crops', icon: '🌾', desc: 'Buy/sell seeds & pesticides', color: '#5e4a1a' },
+    { id: '7', name: 'Plumbing', icon: '🪠', desc: 'Fixing pipes, taps, and leaks', color: '#2563eb' },
+    { id: '8', name: 'Electrical Work', icon: '⚡', desc: 'Wiring, fixtures, and repairs', color: '#d97706' },
+    { id: '9', name: 'Carpentry', icon: '🪓', desc: 'Furniture build & repairs', color: '#b45309' },
+    { id: '10', name: 'Education & Tutoring', icon: '📚', desc: 'Local teachers & classes', color: '#4f46e5' },
+    { id: '11', name: 'Construction & Masonry', icon: '🧱', desc: 'Brickwork, cement & plastering', color: '#475569' },
+    { id: '12', name: 'Transport & Logistics', icon: '🚚', desc: 'Goods loading & delivery', color: '#0891b2' },
+    { id: '13', name: 'Cleaning & Housekeeping', icon: '🧹', desc: 'Home, office & yard cleaning', color: '#0d9488' },
+    { id: '14', name: 'Home Appliance Repair', icon: '🔧', desc: 'TV, fridge, and fan service', color: '#4f46e5' }
 ];
 
 export default function HomeScreen() {
@@ -27,6 +35,13 @@ export default function HomeScreen() {
     const { language, changeLanguage, t } = useLanguage();
     const [listings, setListings] = useState([]);
     const [recommendations, setRecommendations] = useState([]);
+
+    const getGreeting = () => {
+        const hour = new Date().getHours();
+        if (hour < 12) return 'Good Morning';
+        if (hour < 17) return 'Good Afternoon';
+        return 'Good Evening';
+    };
 
     const fetchRecommendations = async () => {
         try {
@@ -60,7 +75,7 @@ export default function HomeScreen() {
                 {/* Header */}
                 <View style={styles.header}>
                     <View style={styles.headerInfo}>
-                        {/* <Text style={styles.welcomeText}>{t('welcome')},</Text> */}
+                        <Text style={styles.welcomeText}>{getGreeting()},</Text>
                         <Text style={styles.userName}>{user?.name || 'Local User'} 👋</Text>
                     </View>
                     <View style={styles.headerRight}>
@@ -88,6 +103,26 @@ export default function HomeScreen() {
                     <Text style={styles.searchText}>{t('search_hint')}</Text>
                 </TouchableOpacity>
 
+                {/* Platform Trust Ribbon */}
+                <View style={styles.trustRibbonContainer}>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.trustRibbonScroll}>
+                        <View style={styles.trustItem}>
+                            <Text style={styles.trustIcon}>🛡️</Text>
+                            <Text style={styles.trustText}>100% Safe Payments</Text>
+                        </View>
+                        <View style={styles.trustDivider} />
+                        <View style={styles.trustItem}>
+                            <Text style={styles.trustIcon}>🤖</Text>
+                            <Text style={styles.trustText}>AI-Verified Work</Text>
+                        </View>
+                        <View style={styles.trustDivider} />
+                        <View style={styles.trustItem}>
+                            <Text style={styles.trustIcon}>🤝</Text>
+                            <Text style={styles.trustText}>Top Local Experts</Text>
+                        </View>
+                    </ScrollView>
+                </View>
+
                 <View style={styles.quickActionsRow}>
                     <TouchableOpacity
                         style={styles.quickActionBtn}
@@ -114,42 +149,7 @@ export default function HomeScreen() {
                     </TouchableOpacity>
                 </View>
 
-                {/* Recommendations Section */}
-                {recommendations.length > 0 && (
-                    <View style={styles.recContainer}>
-                        <View style={styles.sectionHeader}>
-                            <Text style={styles.sectionTitle}>💡 {t('Suggestions') || 'Suggested for You'}</Text>
-                            {/* <Text style={styles.sectionSubtitle}>AI-powered picks for your needs</Text> */}
-                        </View>
-                        <FlatList
-                            horizontal
-                            showsHorizontalScrollIndicator={false}
-                            data={recommendations}
-                            keyExtractor={(item) => item._id}
-                            renderItem={({ item }) => (
-                                <TouchableOpacity
-                                    style={styles.recCard}
-                                    onPress={() => navigation.navigate('ListingDetail', { listing: item, category: { name: item.category, icon: '✨' } })}
-                                >
-                                    <Text style={styles.recName} numberOfLines={1}>{item.name}</Text>
-                                    <View style={styles.recProviderRow}>
-                                        <Text style={styles.recProvider} numberOfLines={1}>{item.providerId?.name || 'Local Expert'}</Text>
-                                        {item.providerId?.isVerified && <Text style={styles.recVerified}>✅</Text>}
-                                    </View>
-                                    
-                                    <View style={styles.recFooter}>
-                                        <Text style={styles.recPrice}>₹{item.price}</Text>
-                                        <View style={styles.recRatingRow}>
-                                            <Text style={styles.recRatingStar}>★</Text>
-                                            <Text style={styles.recRatingText}>{item.averageRating?.toFixed(1) || 'New'}</Text>
-                                        </View>
-                                    </View>
-                                </TouchableOpacity>
-                            )}
-                            contentContainerStyle={styles.recList}
-                        />
-                    </View>
-                )}
+
 
                 {/* Categories Section */}
                 <View style={styles.sectionHeader}>
@@ -420,5 +420,37 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontFamily: 'Inter_700Bold',
         color: '#111827',
+    },
+    trustRibbonContainer: {
+        marginTop: 16,
+        marginBottom: 8,
+        backgroundColor: '#ffffff',
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: '#f1f5f9',
+        paddingVertical: 10,
+    },
+    trustRibbonScroll: {
+        paddingHorizontal: 16,
+        alignItems: 'center',
+        gap: 16,
+    },
+    trustItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+    },
+    trustIcon: {
+        fontSize: 14,
+    },
+    trustText: {
+        fontSize: 12,
+        color: '#475569',
+        fontFamily: 'Inter_700Bold',
+    },
+    trustDivider: {
+        width: 1,
+        height: 12,
+        backgroundColor: '#cbd5e1',
     },
 });

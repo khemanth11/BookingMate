@@ -3,6 +3,7 @@ const router = express.Router();
 import { OpenAI } from 'openai';
 import Booking from '../models/Booking.js';
 import Listing from '../models/Listing.js';
+import { checkAndReleaseFunds } from './bookings.js';
 
 // Lazy initialization
 let _groq = null;
@@ -111,6 +112,7 @@ Answer with "YES" or "NO" followed by a brief one-line reason.`;
             booking.status = 'completed';
             booking.isAiVerified = true;
             booking.verificationPhoto = 'Image stored locally (Base64)';
+            booking.providerVerified = true;
             await booking.save();
         }
 

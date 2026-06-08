@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { 
-  LayoutDashboard, Users, MapPin, Calendar, 
+import {
+  LayoutDashboard, Users, MapPin, Calendar,
   CheckCircle2, XCircle, Trash2, Search,
   Bell, Settings, LogOut, TrendingUp,
   ShieldCheck, AlertTriangle, RefreshCw
 } from 'lucide-react';
-import { 
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, 
-  Tooltip, ResponsiveContainer, LineChart, Line 
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid,
+  Tooltip, ResponsiveContainer, LineChart, Line
 } from 'recharts';
 
 const API_BASE = 'http://localhost:5000/api/admin';
@@ -18,20 +18,26 @@ function App() {
   const [stats, setStats] = useState({ users: 0, listings: 0, bookings: 0, revenue: 0 });
   const [users, setUsers] = useState([]);
   const [listings, setListings] = useState([]);
+  const [bookings, setBookings] = useState([]);
+  const [config, setConfig] = useState({ commissionRate: 10, maintenanceMode: false });
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [statsRes, usersRes, listingsRes] = await Promise.all([
+      const [statsRes, usersRes, listingsRes, bookingsRes, configRes] = await Promise.all([
         axios.get(`${API_BASE}/stats`),
         axios.get(`${API_BASE}/users`),
-        axios.get(`${API_BASE}/listings`)
+        axios.get(`${API_BASE}/listings`),
+        axios.get(`${API_BASE}/bookings`),
+        axios.get(`${API_BASE}/settings`)
       ]);
       setStats(statsRes.data);
       setUsers(usersRes.data);
       setListings(listingsRes.data);
+      setBookings(bookingsRes.data);
+      setConfig(configRes.data);
     } catch (err) {
       console.error('Error fetching admin data:', err);
     } finally {
@@ -62,6 +68,27 @@ function App() {
     }
   };
 
+  const handleResolveBooking = async (bookingId, action) => {
+    if (!window.confirm(`Are you sure you want to resolve this booking with action: ${action}?`)) return;
+    try {
+      await axios.put(`${API_BASE}/bookings/${bookingId}/resolve`, { action });
+      fetchData();
+    } catch (err) {
+      alert('Failed to resolve booking: ' + (err.response?.data?.message || err.message));
+    }
+  };
+
+  const handleUpdateConfig = async (commissionRate, maintenanceMode) => {
+    try {
+      const res = await axios.put(`${API_BASE}/settings`, { commissionRate, maintenanceMode });
+      setConfig(res.data);
+      alert('Settings updated successfully!');
+      fetchData();
+    } catch (err) {
+      alert('Failed to update settings');
+    }
+  };
+
   // Mock chart data based on real stats for visual flair
   const chartData = [
     { name: 'Jan', bookings: Math.floor(stats.bookings * 0.1), revenue: Math.floor(stats.revenue * 0.08) },
@@ -70,24 +97,30 @@ function App() {
     { name: 'Apr', bookings: stats.bookings, revenue: stats.revenue },
   ];
 
-  const filteredUsers = users.filter(u => 
-    u.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+  const filteredUsers = users.filter(u =>
+    u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     u.email.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const filteredListings = listings.filter(l => 
-    l.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+  const filteredListings = listings.filter(l =>
+    l.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     l.category.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const filteredBookings = bookings.filter(b =>
+    b.userId?.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    b.providerId?.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (b.listingId?.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    b.status.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const SidebarItem = ({ id, icon: Icon, label }) => (
     <button
       onClick={() => setActiveTab(id)}
-      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
-        activeTab === id 
-        ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/20' 
-        : 'text-slate-400 hover:bg-slate-800 hover:text-white'
-      }`}
+      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === id
+          ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/20'
+          : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+        }`}
     >
       <Icon size={20} />
       <span className="font-medium whitespace-nowrap">{label}</span>
@@ -137,19 +170,19 @@ function App() {
         <header className="flex justify-between items-center mb-10">
           <div>
             <h1 className="text-3xl font-extrabold text-white tracking-tight">
-              {activeTab === 'overview' ? 'Platform Overview' : 
-               activeTab === 'users' ? 'User Management' : 
-               activeTab === 'listings' ? 'Listing Audit' : 
-               activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
+              {activeTab === 'overview' ? 'Platform Overview' :
+                activeTab === 'users' ? 'User Management' :
+                  activeTab === 'listings' ? 'Listing Audit' :
+                    activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
             </h1>
             <p className="text-slate-400 mt-1">Real-time platform control and analytics.</p>
           </div>
-          
+
           <div className="flex items-center gap-4">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
-              <input 
-                placeholder="Search everything..." 
+              <input
+                placeholder="Search everything..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="bg-slate-900/50 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 transition-all w-72"
@@ -191,7 +224,7 @@ function App() {
                     <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
                     <XAxis dataKey="name" stroke="#64748b" axisLine={false} tickLine={false} dy={10} />
                     <YAxis stroke="#64748b" axisLine={false} tickLine={false} dx={-10} />
-                    <Tooltip 
+                    <Tooltip
                       contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '12px', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
                       itemStyle={{ color: '#fff' }}
                     />
@@ -206,7 +239,7 @@ function App() {
                     <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
                     <XAxis dataKey="name" stroke="#64748b" axisLine={false} tickLine={false} dy={10} />
                     <YAxis stroke="#64748b" axisLine={false} tickLine={false} dx={-10} />
-                    <Tooltip 
+                    <Tooltip
                       contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '12px' }}
                     />
                     <Bar dataKey="bookings" fill="#8b5cf6" radius={[6, 6, 0, 0]} barSize={40} />
@@ -244,9 +277,8 @@ function App() {
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <span className={`px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-tighter ${
-                          u.role === 'provider' ? 'bg-indigo-500/10 text-indigo-400' : 'bg-blue-500/10 text-blue-400'
-                        }`}>
+                        <span className={`px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-tighter ${u.role === 'provider' ? 'bg-indigo-500/10 text-indigo-400' : 'bg-blue-500/10 text-blue-400'
+                          }`}>
                           {u.role}
                         </span>
                       </td>
@@ -263,13 +295,12 @@ function App() {
                       </td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex justify-end gap-2">
-                          <button 
+                          <button
                             onClick={() => handleVerifyUser(u._id)}
-                            className={`px-4 py-2 rounded-lg font-bold text-xs transition-all ${
-                              u.isVerified 
-                              ? 'bg-slate-800 text-slate-400 hover:bg-red-500/20 hover:text-red-400' 
-                              : 'bg-blue-600 text-white hover:bg-blue-500 shadow-lg shadow-blue-500/20 hover:scale-105 active:scale-95'
-                            }`}
+                            className={`px-4 py-2 rounded-lg font-bold text-xs transition-all ${u.isVerified
+                                ? 'bg-slate-800 text-slate-400 hover:bg-red-500/20 hover:text-red-400'
+                                : 'bg-blue-600 text-white hover:bg-blue-500 shadow-lg shadow-blue-500/20 hover:scale-105 active:scale-95'
+                              }`}
                           >
                             {u.isVerified ? 'Revoke KYC' : 'Verify (KYC)'}
                           </button>
@@ -297,7 +328,7 @@ function App() {
                     </span>
                     <h3 className="text-lg font-bold text-white group-hover:text-blue-400 transition-colors">{l.name}</h3>
                   </div>
-                  <button 
+                  <button
                     onClick={() => handleDeleteListing(l._id)}
                     className="p-2 text-slate-500 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
                   >
@@ -306,13 +337,13 @@ function App() {
                 </div>
                 <p className="text-slate-400 text-sm line-clamp-2 mb-6 h-10">{l.description}</p>
                 <div className="flex items-center justify-between pt-4 border-t border-slate-800/50">
-                   <div className="flex items-center gap-2">
-                     <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-xs font-bold text-slate-400">
-                       {l.providerId?.name.charAt(0)}
-                     </div>
-                     <span className="text-xs text-slate-400 font-medium">{l.providerId?.name}</span>
-                   </div>
-                   <span className="text-lg font-bold text-white tracking-tighter">₹{l.price}</span>
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-xs font-bold text-slate-400">
+                      {l.providerId?.name.charAt(0)}
+                    </div>
+                    <span className="text-xs text-slate-400 font-medium">{l.providerId?.name}</span>
+                  </div>
+                  <span className="text-lg font-bold text-white tracking-tighter">₹{l.price}</span>
                 </div>
               </div>
             ))}
@@ -322,12 +353,138 @@ function App() {
           </div>
         )}
 
-        {/* Generic View for unimplemented tabs */}
-        {(activeTab === 'bookings' || activeTab === 'settings') && (
-           <div className="glass-card flex flex-col items-center justify-center p-20 gap-4 opacity-50">
-             <Settings className="text-slate-600 animate-pulse" size={48} />
-             <p className="text-slate-400 font-medium text-lg">Admin module for {activeTab} coming soon.</p>
-           </div>
+        {activeTab === 'bookings' && (
+          <div className="glass-card overflow-hidden p-0 animate-in slide-in-from-bottom-4 duration-500">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead className="bg-slate-900/50 border-b border-slate-800">
+                  <tr>
+                    <th className="px-6 py-4 text-slate-500 font-bold text-xs uppercase tracking-widest">Booking Info</th>
+                    <th className="px-6 py-4 text-slate-500 font-bold text-xs uppercase tracking-widest">Consumer</th>
+                    <th className="px-6 py-4 text-slate-500 font-bold text-xs uppercase tracking-widest">Provider</th>
+                    <th className="px-6 py-4 text-slate-500 font-bold text-xs uppercase tracking-widest">Status</th>
+                    <th className="px-6 py-4 text-slate-500 font-bold text-xs uppercase tracking-widest text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/50">
+                  {filteredBookings.map((b) => (
+                    <tr key={b._id} className="hover:bg-slate-800/20 transition-colors group">
+                      <td className="px-6 py-4">
+                        <div>
+                          <p className="font-bold text-white group-hover:text-blue-400 transition-colors">{b.listingId?.name || 'Deleted Listing'}</p>
+                          <p className="text-sm text-slate-500">{b.date} | {b.startTime} - {b.endTime}</p>
+                          {b.isAiVerified && (
+                            <span className="mt-1.5 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-tighter bg-emerald-500/10 text-emerald-400">
+                              🤖 AI Verified
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div>
+                          <p className="font-bold text-slate-300">{b.userId?.name || 'Deleted Consumer'}</p>
+                          <p className="text-sm text-slate-500">{b.userId?.phone || 'No phone'}</p>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div>
+                          <p className="font-bold text-slate-300">{b.providerId?.name || 'Deleted Provider'}</p>
+                          <p className="text-sm text-slate-500">{b.providerId?.phone || 'No phone'}</p>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={`px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-tighter ${b.status === 'verified' ? 'bg-emerald-500/10 text-emerald-400' :
+                            b.status === 'completed' ? 'bg-blue-500/10 text-blue-400' :
+                              b.status === 'confirmed' ? 'bg-indigo-500/10 text-indigo-400' :
+                                b.status === 'cancelled' ? 'bg-red-500/10 text-red-400' : 'bg-slate-500/10 text-slate-400'
+                          }`}>
+                          {b.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex justify-end gap-2">
+                          {['pending', 'confirmed', 'completed'].includes(b.status) && (
+                            <>
+                              <button
+                                onClick={() => handleResolveBooking(b._id, 'complete')}
+                                className="bg-emerald-600 text-white hover:bg-emerald-500 px-3 py-1.5 rounded-lg font-bold text-xs transition-all shadow-lg shadow-emerald-500/20"
+                              >
+                                Force Release
+                              </button>
+                              <button
+                                onClick={() => handleResolveBooking(b._id, 'cancel')}
+                                className="bg-red-600 text-white hover:bg-red-500 px-3 py-1.5 rounded-lg font-bold text-xs transition-all shadow-lg shadow-red-500/20"
+                              >
+                                Cancel & Refund
+                              </button>
+                            </>
+                          )}
+                          {b.status === 'verified' && (
+                            <span className="text-xs text-emerald-500 font-bold">Payout Settled</span>
+                          )}
+                          {b.status === 'cancelled' && (
+                            <span className="text-xs text-red-400 font-bold">Cancelled / Refunded</span>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {filteredBookings.length === 0 && (
+              <div className="p-20 text-center text-slate-500 font-medium">No bookings found matching search.</div>
+            )}
+          </div>
+        )}
+
+        {activeTab === 'settings' && (
+          <div className="glass-card max-w-xl mx-auto animate-in slide-in-from-bottom-4 duration-500">
+            <h3 className="text-xl font-bold text-white mb-6">Global Platform Configurations</h3>
+
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              const rate = e.target.commissionRate.value;
+              const mode = e.target.maintenanceMode.checked;
+              handleUpdateConfig(rate, mode);
+            }} className="space-y-6">
+              <div>
+                <label className="block text-slate-400 font-medium mb-2">Platform Commission Cut (%)</label>
+                <div className="relative">
+                  <input
+                    name="commissionRate"
+                    type="number"
+                    min="0"
+                    max="100"
+                    defaultValue={config.commissionRate}
+                    className="w-full bg-slate-900/50 border border-slate-800 rounded-xl px-4 py-3 text-white outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 transition-all"
+                  />
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold">%</span>
+                </div>
+                <p className="text-xs text-slate-500 mt-2">The percentage of each booking payout deducted by EverythingBooking.</p>
+              </div>
+
+              <div className="flex items-center justify-between p-4 bg-slate-900/30 rounded-xl border border-slate-800">
+                <div>
+                  <label className="block text-white font-bold">Maintenance Mode</label>
+                  <p className="text-xs text-slate-500">Block all incoming requests and show offline message to clients.</p>
+                </div>
+                <input
+                  name="maintenanceMode"
+                  type="checkbox"
+                  defaultChecked={config.maintenanceMode}
+                  className="w-5 h-5 accent-blue-600 rounded cursor-pointer"
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="w-full bg-blue-600 text-white hover:bg-blue-500 py-3.5 rounded-xl font-bold transition-all shadow-lg shadow-blue-500/20"
+              >
+                Save Configurations
+              </button>
+            </form>
+          </div>
         )}
       </main>
 

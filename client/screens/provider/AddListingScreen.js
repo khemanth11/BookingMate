@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import {
     View, Text, TextInput, StyleSheet, TouchableOpacity,
     Switch, SafeAreaView, StatusBar, ScrollView,
-    KeyboardAvoidingView, Platform, Alert, ActivityIndicator
+    KeyboardAvoidingView, Platform, Alert, ActivityIndicator,
+    Modal, FlatList
 } from 'react-native';
 import { useProvider } from './ProviderContext';
 import { useNavigation } from '@react-navigation/native';
@@ -11,8 +12,10 @@ import axios from 'axios';
 import { BASE_URL } from '../../utils/config';
 
 const CATEGORIES = [
-    'Farm Animals', 'Medical', 'Farm Equipment',
-    'Farm Labor', 'Water Supply', 'Seeds & Crops'
+    'Farm Animals', 'Medical', 'Farm Equipment', 'Farm Labor', 
+    'Water Supply', 'Seeds & Crops', 'Plumbing', 'Electrical Work', 
+    'Carpentry', 'Education & Tutoring', 'Construction & Masonry', 
+    'Transport & Logistics', 'Cleaning & Housekeeping', 'Home Appliance Repair'
 ];
 
 export default function AddListingScreen() {
@@ -27,6 +30,7 @@ export default function AddListingScreen() {
     const [isSaving, setIsSaving] = useState(false);
     const [isOptimizing, setIsOptimizing] = useState(false);
     const [isSuggesting, setIsSuggesting] = useState(false);
+    const [isDropdownVisible, setIsDropdownVisible] = useState(false);
 
     const handleOptimizeAI = async () => {
         if (!description.trim()) {
@@ -131,17 +135,47 @@ export default function AddListingScreen() {
                     />
 
                     <Text style={styles.formLabel}>Category *</Text>
-                    <View style={styles.catGrid}>
-                        {CATEGORIES.map((cat) => (
-                            <TouchableOpacity
-                                key={cat}
-                                style={[styles.catChip, category === cat && styles.catChipActive]}
-                                onPress={() => setCategory(cat)}
-                            >
-                                <Text style={[styles.catChipLabel, category === cat && styles.catChipLabelActive]}>{cat}</Text>
-                            </TouchableOpacity>
-                        ))}
-                    </View>
+                    <TouchableOpacity
+                        style={styles.dropdownBtn}
+                        onPress={() => setIsDropdownVisible(true)}
+                    >
+                        <Text style={[styles.dropdownBtnText, !category && { color: '#94a3b8' }]}>
+                            {category || 'Select Category'}
+                        </Text>
+                        <Text style={styles.dropdownArrow}>▼</Text>
+                    </TouchableOpacity>
+
+                    {/* Category Dropdown Modal */}
+                    <Modal visible={isDropdownVisible} animationType="slide" transparent={true}>
+                        <View style={styles.modalOverlay}>
+                            <View style={styles.modalContent}>
+                                <View style={styles.modalHeader}>
+                                    <Text style={styles.modalTitle}>Choose Category</Text>
+                                    <TouchableOpacity onPress={() => setIsDropdownVisible(false)}>
+                                        <Text style={styles.modalCloseText}>Cancel</Text>
+                                    </TouchableOpacity>
+                                </View>
+                                <FlatList
+                                    data={CATEGORIES}
+                                    keyExtractor={(item) => item}
+                                    renderItem={({ item }) => (
+                                        <TouchableOpacity
+                                            style={[styles.dropdownItem, category === item && styles.dropdownItemActive]}
+                                            onPress={() => {
+                                                setCategory(item);
+                                                setIsDropdownVisible(false);
+                                            }}
+                                        >
+                                            <Text style={[styles.dropdownItemLabel, category === item && styles.dropdownItemLabelActive]}>
+                                                {item}
+                                            </Text>
+                                            {category === item && <Text style={styles.checkIcon}>✓</Text>}
+                                        </TouchableOpacity>
+                                    )}
+                                />
+                            </View>
+                        </View>
+                    </Modal>
 
                     <View style={styles.labelActionRow}>
                         <Text style={styles.formLabel}>Service Price</Text>
@@ -213,15 +247,84 @@ const styles = StyleSheet.create({
         borderWidth: 1, borderColor: '#f1f5f9',
         fontWeight: '500'
     },
-    catGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 24 },
-    catChip: {
-        paddingHorizontal: 16, paddingVertical: 10,
-        backgroundColor: '#ffffff', borderRadius: 20,
-        borderWidth: 1, borderColor: '#e2e8f0',
+    dropdownBtn: {
+        backgroundColor: '#f8fafc',
+        borderRadius: 20,
+        padding: 18,
+        marginBottom: 24,
+        borderWidth: 1,
+        borderColor: '#f1f5f9',
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
     },
-    catChipActive: { backgroundColor: '#0f172a', borderColor: '#0f172a' },
-    catChipLabel: { color: '#64748b', fontSize: 13, fontWeight: '700' },
-    catChipLabelActive: { color: '#ffffff' },
+    dropdownBtnText: {
+        color: '#0f172a',
+        fontSize: 15,
+        fontWeight: '500',
+    },
+    dropdownArrow: {
+        color: '#64748b',
+        fontSize: 12,
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(15, 23, 42, 0.4)',
+        justifyContent: 'flex-end',
+    },
+    modalContent: {
+        backgroundColor: '#ffffff',
+        borderTopLeftRadius: 28,
+        borderTopRightRadius: 28,
+        padding: 24,
+        maxHeight: '60%',
+    },
+    modalHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 20,
+        borderBottomWidth: 1,
+        borderBottomColor: '#f1f5f9',
+        paddingBottom: 16,
+    },
+    modalTitle: {
+        fontSize: 18,
+        fontWeight: '900',
+        color: '#0f172a',
+        letterSpacing: -0.4,
+    },
+    modalCloseText: {
+        color: '#64748b',
+        fontWeight: '800',
+        fontSize: 14,
+    },
+    dropdownItem: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingVertical: 16,
+        paddingHorizontal: 8,
+        borderBottomWidth: 1,
+        borderBottomColor: '#f8fafc',
+    },
+    dropdownItemActive: {
+        backgroundColor: '#f8fafc',
+    },
+    dropdownItemLabel: {
+        color: '#475569',
+        fontSize: 15,
+        fontWeight: '600',
+    },
+    dropdownItemLabelActive: {
+        color: '#0f172a',
+        fontWeight: '800',
+    },
+    checkIcon: {
+        color: '#10b981',
+        fontWeight: '900',
+        fontSize: 16,
+    },
     availabilityRow: {
         flexDirection: 'row', alignItems: 'center',
         justifyContent: 'space-between', marginBottom: 24,

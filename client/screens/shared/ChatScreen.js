@@ -15,6 +15,16 @@ const API_URL = BASE_URL;
 // Initialize socket outside component to prevent multiple connections
 const socket = io(API_URL);
 
+const formatTime = (dateString) => {
+    if (!dateString) return '';
+    try {
+        const date = new Date(dateString);
+        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } catch (e) {
+        return '';
+    }
+};
+
 export default function ChatScreen() {
     const route = useRoute();
     const navigation = useNavigation();
@@ -85,11 +95,25 @@ export default function ChatScreen() {
 
     const renderMessage = ({ item }) => {
         const isMe = item.senderId === senderId;
+        const timeStr = formatTime(item.createdAt);
 
         return (
             <View style={[styles.msgWrapper, isMe ? styles.msgRight : styles.msgLeft]}>
+                {!isMe && (
+                    <View style={styles.avatarBubble}>
+                        <Text style={styles.avatarText}>
+                            {receiverName ? receiverName.charAt(0).toUpperCase() : 'U'}
+                        </Text>
+                    </View>
+                )}
                 <View style={[styles.msgBubble, isMe ? styles.bubbleRight : styles.bubbleLeft]}>
                     <Text style={[styles.msgText, isMe ? styles.msgTextRight : styles.msgTextLeft]}>{item.text}</Text>
+                    <View style={styles.bubbleFooter}>
+                        <Text style={[styles.timeText, isMe ? styles.timeTextRight : styles.timeTextLeft]}>
+                            {timeStr}
+                        </Text>
+                        {isMe && <Text style={styles.checkmarkText}> ✓✓</Text>}
+                    </View>
                 </View>
             </View>
         );
@@ -250,4 +274,40 @@ const styles = StyleSheet.create({
         elevation: 3,
     },
     sendIcon: { color: '#ffffff', fontSize: 20, fontWeight: '900' },
+    avatarBubble: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: '#e2e8f0',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 8,
+        alignSelf: 'flex-end',
+    },
+    avatarText: {
+        color: '#475569',
+        fontSize: 14,
+        fontWeight: 'bold',
+    },
+    bubbleFooter: {
+        flexDirection: 'row',
+        justifyContent: 'flex-end',
+        alignItems: 'center',
+        marginTop: 4,
+        gap: 4,
+    },
+    timeText: {
+        fontSize: 10,
+    },
+    timeTextLeft: {
+        color: '#64748b',
+    },
+    timeTextRight: {
+        color: '#94a3b8',
+    },
+    checkmarkText: {
+        fontSize: 10,
+        color: '#3b82f6',
+        fontWeight: 'bold',
+    },
 });

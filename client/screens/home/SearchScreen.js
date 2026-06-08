@@ -71,10 +71,10 @@ export default function SearchScreen({ navigation }) {
                     <Text style={styles.itemName}>{item.name}</Text>
                     <Text style={styles.itemCategory}>{item.category}</Text>
                     <View style={styles.priceBadge}>
-                        <Text style={styles.itemPrice}>₹{item.price}</Text>
+                        <Text style={styles.itemPrice}>{item.price}</Text>
                     </View>
                 </View>
-                <TouchableOpacity 
+                <TouchableOpacity
                     onPress={() => handleToggleFavorite(item._id || item.id)}
                     style={styles.heartAction}
                 >
@@ -89,7 +89,7 @@ export default function SearchScreen({ navigation }) {
     return (
         <SafeAreaView style={styles.container}>
             <StatusBar barStyle="dark-content" backgroundColor="#f5f6f8" />
-            
+
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
                     <Text style={styles.backIcon}>←</Text>
@@ -100,7 +100,7 @@ export default function SearchScreen({ navigation }) {
             <View style={styles.searchContainer}>
                 <TextInput
                     style={styles.input}
-                    placeholder="Type full sentences (e.g. 'I need a plumber to fix a sink')"
+                    placeholder="Type full sentences you wish to Search"
                     placeholderTextColor="#9ca3af"
                     value={query}
                     onChangeText={setQuery}

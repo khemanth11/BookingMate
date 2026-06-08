@@ -3,6 +3,8 @@ import User from '../models/User.js';
 import Listing from '../models/Listing.js';
 import Booking from '../models/Booking.js';
 import jwt from 'jsonwebtoken';
+import { checkAndReleaseFunds } from './bookings.js';
+import Config from '../models/Config.js';
 
 const router = express.Router();
 
@@ -99,6 +101,87 @@ router.delete('/listings/:id', async (req, res) => {
 
         await Listing.findByIdAndDelete(req.params.id);
         res.json({ message: 'Listing removed by admin' });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
+// @route   GET /api/admin/bookings
+// @desc    Get all platform bookings for auditing
+router.get('/bookings', async (req, res) => {
+    try {
+        const bookings = await Booking.find()
+            .populate('userId', 'name email phone')
+            .populate('providerId', 'name email phone')
+            .populate('listingId', 'name category price')
+            .sort({ createdAt: -1 });
+        res.json(bookings);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
+// @route   PUT /api/admin/bookings/:id/resolve
+// @desc    Admin override to resolve booking disputes (force complete/cancel)
+router.put('/bookings/:id/resolve', async (req, res) => {
+    try {
+        const { action } = req.body; // 'complete' or 'cancel'
+        const booking = await Booking.findById(req.params.id);
+        if (!booking) return res.status(404).json({ message: 'Booking not found' });
+
+        if (action === 'complete') {
+            booking.status = 'verified';
+            booking.consumerVerified = true;
+            booking.providerVerified = true;
+            await booking.save();
+            await checkAndReleaseFunds(booking);
+            res.json({ message: 'Booking completed and funds released by admin', booking });
+        } else if (action === 'cancel') {
+            booking.status = 'cancelled';
+            booking.paymentStatus = 'refunded';
+            await booking.save();
+            res.json({ message: 'Booking cancelled and payment refunded by admin', booking });
+        } else {
+            res.status(400).json({ message: 'Invalid action. Must be complete or cancel.' });
+        }
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
+// @route   GET /api/admin/settings
+// @desc    Get platform configuration settings
+router.get('/settings', async (req, res) => {
+    try {
+        let config = await Config.findOne({ key: 'global' });
+        if (!config) {
+            config = new Config({ key: 'global' });
+            await config.save();
+        }
+        res.json(config);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
+// @route   PUT /api/admin/settings
+// @desc    Update platform configuration settings
+router.put('/settings', async (req, res) => {
+    try {
+        const { commissionRate, maintenanceMode } = req.body;
+        let config = await Config.findOne({ key: 'global' });
+        if (!config) {
+            config = new Config({ key: 'global' });
+        }
+        if (commissionRate !== undefined) config.commissionRate = Number(commissionRate);
+        if (maintenanceMode !== undefined) config.maintenanceMode = maintenanceMode;
+        config.updatedAt = Date.now();
+        await config.save();
+        res.json(config);
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server Error');

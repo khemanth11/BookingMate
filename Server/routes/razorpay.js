@@ -31,13 +31,22 @@ router.post('/create-order', auth, async (req, res) => {
         const { amount, currency = 'INR' } = req.body;
         
         // Ensure amount is a valid number and convert to integer paise
-        const parsedAmount = parseFloat(amount);
-        if (isNaN(parsedAmount)) {
+        let numericAmount = 0;
+        if (typeof amount === 'string') {
+            const match = amount.match(/[\d.]+/);
+            if (match) {
+                numericAmount = parseFloat(match[0]);
+            }
+        } else if (typeof amount === 'number') {
+            numericAmount = amount;
+        }
+
+        if (isNaN(numericAmount) || numericAmount <= 0) {
             return res.status(400).json({ message: 'Invalid amount provided' });
         }
 
         const options = {
-            amount: Math.round(parsedAmount * 100), // Razorpay requires an integer in paise
+            amount: Math.round(numericAmount * 100), // Razorpay requires an integer in paise
             currency,
             receipt: `receipt_${Date.now()}`,
         };
@@ -72,14 +81,16 @@ router.post('/verify', auth, async (req, res) => {
 
         if (razorpay_signature === expectedSign) {
             // Payment successful
+            const otp = Math.floor(1000 + Math.random() * 9000).toString();
             await Booking.findByIdAndUpdate(bookingId, {
                 paymentStatus: 'paid',
                 razorpayOrderId: razorpay_order_id,
                 razorpayPaymentId: razorpay_payment_id,
-                razorpaySignature: razorpay_signature
+                razorpaySignature: razorpay_signature,
+                payoutOtp: otp
             });
             
-            return res.status(200).json({ message: "Payment verified successfully" });
+            return res.status(200).json({ message: "Payment verified successfully", otp });
         } else {
             return res.status(400).json({ message: "Invalid signature" });
         }
