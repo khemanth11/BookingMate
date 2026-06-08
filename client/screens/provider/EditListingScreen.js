@@ -3,8 +3,9 @@ import {
     View, Text, TextInput, StyleSheet, TouchableOpacity,
     Switch, SafeAreaView, StatusBar, ScrollView,
     KeyboardAvoidingView, Platform, Alert, ActivityIndicator,
-    Modal, FlatList
+    Modal, FlatList, Image
 } from 'react-native';
+import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Calendar } from 'react-native-calendars';
 import { useProvider } from './ProviderContext';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -41,6 +42,41 @@ export default function EditListingScreen() {
     const [isDropdownVisible, setIsDropdownVisible] = useState(false);
     const [blockedDates, setBlockedDates] = useState([]);
     const [isSavingDates, setIsSavingDates] = useState(false);
+    const [image, setImage] = useState(null);
+    const [isCameraVisible, setIsCameraVisible] = useState(false);
+    const [permission, requestPermission] = useCameraPermissions();
+    const [cameraRef, setCameraRef] = useState(null);
+    const [isCapturing, setIsCapturing] = useState(false);
+
+    const handleCaptureImage = async () => {
+        if (!permission || !permission.granted) {
+            const res = await requestPermission();
+            if (!res.granted) {
+                Alert.alert('Permission Rejected', 'Camera access is required to snap a showcase photo.');
+                return;
+            }
+        }
+        setIsCameraVisible(true);
+    };
+
+    const takePicture = async () => {
+        if (!cameraRef) return;
+        try {
+            setIsCapturing(true);
+            const photo = await cameraRef.takePictureAsync({
+                quality: 0.3,
+                base64: true,
+                exif: false,
+            });
+            setImage(photo.base64);
+            setIsCameraVisible(false);
+        } catch (e) {
+            console.error('Error snapping photo:', e);
+            Alert.alert('Error', 'Failed to capture photo.');
+        } finally {
+            setIsCapturing(false);
+        }
+    };
 
     const today = new Date().toISOString().split('T')[0];
 
@@ -91,6 +127,7 @@ export default function EditListingScreen() {
             setPrice(listing.price || '');
             setAvailable(listing.available ?? true);
             setDescription(listing.description || '');
+            setImage(listing.image || null);
         }
         // Fetch blocked dates
         fetchBlockedDates();
@@ -159,6 +196,7 @@ export default function EditListingScreen() {
             price: price.trim(),
             available,
             description: description.trim(),
+            image: image,
             ...(currentLocation && { location: currentLocation }) // Only send location if successfully grabbed
         });
 
@@ -274,6 +312,26 @@ export default function EditListingScreen() {
                         onChangeText={setDescription}
                     />
 
+                    {/* Showcase Image Picker */}
+                    <Text style={styles.formLabel}>Showcase Portfolio Image</Text>
+                    <View style={styles.imagePickerRow}>
+                        {image ? (
+                            <Image source={{ uri: `data:image/jpeg;base64,${image}` }} style={styles.previewImage} />
+                        ) : (
+                            <View style={styles.placeholderImage}>
+                                <Text style={styles.placeholderImageText}>No Image Selected</Text>
+                            </View>
+                        )}
+                        <TouchableOpacity style={styles.captureImageBtn} onPress={handleCaptureImage}>
+                            <Text style={styles.captureImageBtnText}>📸 Snap Showcase Photo</Text>
+                        </TouchableOpacity>
+                        {image && (
+                            <TouchableOpacity style={styles.clearImageBtn} onPress={() => setImage(null)}>
+                                <Text style={styles.clearImageBtnText}>Clear</Text>
+                            </TouchableOpacity>
+                        )}
+                    </View>
+
                     <TouchableOpacity style={[styles.saveChangesBtn, isSaving && { opacity: 0.7 }]} onPress={handleSave} disabled={isSaving}>
                         {isSaving ? (
                             <ActivityIndicator color="#FFFFFF" />
@@ -281,6 +339,38 @@ export default function EditListingScreen() {
                             <Text style={styles.saveChangesBtnText}>Update Service Portfolio</Text>
                         )}
                     </TouchableOpacity>
+
+                    {/* Camera Modal */}
+                    <Modal visible={isCameraVisible} animationType="slide">
+                        <View style={styles.cameraContainer}>
+                            <CameraView
+                                style={styles.camera}
+                                ref={(ref) => setCameraRef(ref)}
+                            >
+                                <View style={styles.cameraOverlay}>
+                                    <Text style={styles.cameraTip}>Capture a showcase photo of your work</Text>
+                                    {isCapturing ? (
+                                        <ActivityIndicator size="large" color="#ffffff" />
+                                    ) : (
+                                        <View style={styles.cameraActions}>
+                                            <TouchableOpacity 
+                                                style={styles.captureBtn} 
+                                                onPress={takePicture}
+                                            >
+                                                <View style={styles.captureInner} />
+                                            </TouchableOpacity>
+                                            <TouchableOpacity 
+                                                style={styles.cancelCameraBtn} 
+                                                onPress={() => setIsCameraVisible(false)}
+                                            >
+                                                <Text style={styles.cancelCameraText}>Cancel</Text>
+                                            </TouchableOpacity>
+                                        </View>
+                                    )}
+                                </View>
+                            </CameraView>
+                        </View>
+                    </Modal>
 
                     {/* Blocked Dates Calendar */}
                     <Text style={[styles.formLabel, { marginTop: 40, fontSize: 20 }]}>📅 Availability Calendar</Text>
@@ -490,5 +580,113 @@ const styles = StyleSheet.create({
         color: '#ffffff',
         fontWeight: '900',
         fontSize: 15,
-    }
+    },
+    imagePickerRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        marginBottom: 24,
+        backgroundColor: '#f8fafc',
+        padding: 16,
+        borderRadius: 20,
+        borderWidth: 1,
+        borderColor: '#f1f5f9',
+    },
+    previewImage: {
+        width: 80,
+        height: 80,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: '#e2e8f0',
+    },
+    placeholderImage: {
+        width: 80,
+        height: 80,
+        borderRadius: 12,
+        backgroundColor: '#cbd5e1',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 6,
+    },
+    placeholderImageText: {
+        fontSize: 10,
+        color: '#475569',
+        textAlign: 'center',
+        fontFamily: 'Inter_700Bold',
+    },
+    captureImageBtn: {
+        flex: 1,
+        backgroundColor: '#ffffff',
+        paddingVertical: 12,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: '#e2e8f0',
+        alignItems: 'center',
+    },
+    captureImageBtnText: {
+        color: '#0f172a',
+        fontFamily: 'Inter_700Bold',
+        fontSize: 13,
+    },
+    clearImageBtn: {
+        paddingVertical: 12,
+        paddingHorizontal: 16,
+        backgroundColor: '#fef2f2',
+        borderRadius: 12,
+    },
+    clearImageBtnText: {
+        color: '#dc2626',
+        fontFamily: 'Inter_700Bold',
+        fontSize: 13,
+    },
+    cameraContainer: { flex: 1, backgroundColor: '#000' },
+    camera: { flex: 1 },
+    cameraOverlay: {
+        flex: 1,
+        backgroundColor: 'transparent',
+        justifyContent: 'flex-end',
+        alignItems: 'center',
+        paddingBottom: 40
+    },
+    cameraTip: {
+        color: '#ffffff',
+        fontSize: 14,
+        fontFamily: 'Inter_700Bold',
+        marginBottom: 20,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 20
+    },
+    cameraActions: {
+        width: '100%',
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center'
+    },
+    captureBtn: {
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        borderWidth: 4,
+        borderColor: '#ffffff',
+        justifyContent: 'center',
+        alignItems: 'center'
+    },
+    captureInner: {
+        width: 64,
+        height: 64,
+        borderRadius: 32,
+        backgroundColor: '#ffffff'
+    },
+    cancelCameraBtn: {
+        position: 'absolute',
+        right: 40,
+        padding: 10
+    },
+    cancelCameraText: {
+        color: '#ffffff',
+        fontSize: 16,
+        fontWeight: 'bold'
+    },
 });

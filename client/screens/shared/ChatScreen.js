@@ -2,8 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
     View, Text, StyleSheet, TextInput, TouchableOpacity,
     FlatList, SafeAreaView, KeyboardAvoidingView, Platform,
-    StatusBar, Linking, Alert
+    StatusBar, Linking, Alert, Image, Modal, ActivityIndicator
 } from 'react-native';
+import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import io from 'socket.io-client';
 import axios from 'axios';
@@ -33,6 +34,48 @@ export default function ChatScreen() {
     const [messages, setMessages] = useState([]);
     const [inputText, setInputText] = useState('');
     const flatListRef = useRef(null);
+    const [isCameraVisible, setIsCameraVisible] = useState(false);
+    const [permission, requestPermission] = useCameraPermissions();
+    const [cameraRef, setCameraRef] = useState(null);
+    const [isSendingImage, setIsSendingImage] = useState(false);
+
+    const handleCameraPress = async () => {
+        if (!permission || !permission.granted) {
+            const res = await requestPermission();
+            if (!res.granted) {
+                Alert.alert('Permission Denied', 'Camera permission is required to send photos.');
+                return;
+            }
+        }
+        setIsCameraVisible(true);
+    };
+
+    const sendImageMessage = async () => {
+        if (!cameraRef) return;
+        try {
+            setIsSendingImage(true);
+            const photo = await cameraRef.takePictureAsync({
+                quality: 0.2, // Lower quality for faster socket transport
+                base64: true,
+                exif: false
+            });
+
+            const messageData = {
+                bookingId,
+                senderId,
+                text: '',
+                image: photo.base64
+            };
+
+            socket.emit('send_message', messageData);
+            setIsCameraVisible(false);
+        } catch (error) {
+            console.error('Error taking and sending picture:', error);
+            Alert.alert('Error', 'Failed to send photo.');
+        } finally {
+            setIsSendingImage(false);
+        }
+    };
 
     useEffect(() => {
         fetchPreviousMessages();
@@ -107,7 +150,15 @@ export default function ChatScreen() {
                     </View>
                 )}
                 <View style={[styles.msgBubble, isMe ? styles.bubbleRight : styles.bubbleLeft]}>
-                    <Text style={[styles.msgText, isMe ? styles.msgTextRight : styles.msgTextLeft]}>{item.text}</Text>
+                    {item.image ? (
+                        <Image
+                            source={{ uri: `data:image/jpeg;base64,${item.image}` }}
+                            style={styles.messageImage}
+                            resizeMode="cover"
+                        />
+                    ) : (
+                        <Text style={[styles.msgText, isMe ? styles.msgTextRight : styles.msgTextLeft]}>{item.text}</Text>
+                    )}
                     <View style={styles.bubbleFooter}>
                         <Text style={[styles.timeText, isMe ? styles.timeTextRight : styles.timeTextLeft]}>
                             {timeStr}
@@ -155,6 +206,9 @@ export default function ChatScreen() {
 
                 {/* Input Area */}
                 <View style={styles.inputContainer}>
+                    <TouchableOpacity style={styles.attachBtn} onPress={handleCameraPress}>
+                        <Text style={styles.attachIcon}>📸</Text>
+                    </TouchableOpacity>
                     <TextInput
                         style={styles.input}
                         placeholder="Type your message..."
@@ -167,6 +221,38 @@ export default function ChatScreen() {
                         <Text style={styles.sendIcon}>➤</Text>
                     </TouchableOpacity>
                 </View>
+
+                {/* Camera Modal for Photo Messages */}
+                <Modal visible={isCameraVisible} animationType="slide">
+                    <View style={styles.cameraContainer}>
+                        <CameraView
+                            style={styles.camera}
+                            ref={(ref) => setCameraRef(ref)}
+                        >
+                            <View style={styles.cameraOverlay}>
+                                <Text style={styles.cameraTip}>Snap a photo to send in chat</Text>
+                                {isSendingImage ? (
+                                    <ActivityIndicator size="large" color="#ffffff" />
+                                ) : (
+                                    <View style={styles.cameraActions}>
+                                        <TouchableOpacity 
+                                            style={styles.captureBtn} 
+                                            onPress={sendImageMessage}
+                                        >
+                                            <View style={styles.captureInner} />
+                                        </TouchableOpacity>
+                                        <TouchableOpacity 
+                                            style={styles.cancelCameraBtn} 
+                                            onPress={() => setIsCameraVisible(false)}
+                                        >
+                                            <Text style={styles.cancelCameraText}>Cancel</Text>
+                                        </TouchableOpacity>
+                                    </View>
+                                )}
+                            </View>
+                        </CameraView>
+                    </View>
+                </Modal>
             </KeyboardAvoidingView>
         </SafeAreaView>
     );
@@ -309,5 +395,73 @@ const styles = StyleSheet.create({
         fontSize: 10,
         color: '#3b82f6',
         fontWeight: 'bold',
+    },
+    attachBtn: {
+        backgroundColor: '#f1f5f9',
+        width: 52,
+        height: 52,
+        borderRadius: 18,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 8,
+        borderWidth: 1,
+        borderColor: '#e2e8f0',
+    },
+    attachIcon: { fontSize: 20 },
+    messageImage: {
+        width: 200,
+        height: 150,
+        borderRadius: 14,
+        marginBottom: 4,
+    },
+    cameraContainer: { flex: 1, backgroundColor: '#000' },
+    camera: { flex: 1 },
+    cameraOverlay: {
+        flex: 1,
+        backgroundColor: 'transparent',
+        justifyContent: 'flex-end',
+        alignItems: 'center',
+        paddingBottom: 40
+    },
+    cameraTip: {
+        color: '#ffffff',
+        fontSize: 14,
+        fontFamily: 'Inter_700Bold',
+        marginBottom: 20,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 20
+    },
+    cameraActions: {
+        width: '100%',
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center'
+    },
+    captureBtn: {
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        borderWidth: 4,
+        borderColor: '#ffffff',
+        justifyContent: 'center',
+        alignItems: 'center'
+    },
+    captureInner: {
+        width: 64,
+        height: 64,
+        borderRadius: 32,
+        backgroundColor: '#ffffff'
+    },
+    cancelCameraBtn: {
+        position: 'absolute',
+        right: 40,
+        padding: 10
+    },
+    cancelCameraText: {
+        color: '#ffffff',
+        fontSize: 16,
+        fontWeight: 'bold'
     },
 });

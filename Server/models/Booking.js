@@ -30,7 +30,7 @@ const bookingSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['pending', 'confirmed', 'completed', 'cancelled', 'verified', 'rejected'],
+        enum: ['pending', 'confirmed', 'completed', 'cancelled', 'verified', 'rejected', 'disputed'],
         default: 'pending'
     },
     notes: {
@@ -63,6 +63,12 @@ const bookingSchema = new mongoose.Schema({
         type: Number,
         default: 0
     },
+    confirmedAt: { type: Date },
+    rejectedAt: { type: Date },
+    paymentDoneAt: { type: Date },
+    disputedAt: { type: Date },
+    completedAt: { type: Date },
+    cancelledAt: { type: Date },
     createdAt: {
         type: Date,
         default: Date.now

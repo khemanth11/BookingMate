@@ -75,13 +75,14 @@ io.on('connection', (socket) => {
     });
 
     socket.on('send_message', async (data) => {
-        const { bookingId, senderId, text } = data;
+        const { bookingId, senderId, text, image } = data;
 
         try {
             const newMessage = new Message({
                 bookingId,
                 senderId,
-                text
+                text: text || '',
+                image: image || null
             });
             await newMessage.save();
 
@@ -93,10 +94,15 @@ io.on('connection', (socket) => {
                 const recipientId = senderId === booking.userId.toString() ? booking.providerId : booking.userId;
                 const sender = await User.findById(senderId);
                 
+                let notificationBody = '📷 Sent a photo';
+                if (text && text.trim()) {
+                    notificationBody = text.length > 50 ? text.substring(0, 47) + '...' : text;
+                }
+                
                 sendNotification(
                     recipientId,
                     `New message from ${sender.name} 💬`,
-                    text.length > 50 ? text.substring(0, 47) + '...' : text,
+                    notificationBody,
                     { bookingId, type: 'chat' }
                 );
             }

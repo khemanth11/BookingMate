@@ -281,6 +281,78 @@ router.put('/:id/verify-otp', auth, async (req, res) => {
     }
 });
 
+// @route   PUT api/bookings/:id/dispute
+// @desc    Raise a dispute on a completed booking
+// @access  Private (Provider only)
+router.put('/:id/dispute', auth, async (req, res) => {
+    try {
+        if (req.user.role !== 'provider') {
+            return res.status(403).json({ message: 'Only providers can raise disputes' });
+        }
+
+        let booking = await Booking.findById(req.params.id);
+        if (!booking) {
+            return res.status(404).json({ message: 'Booking not found' });
+        }
+
+        if (booking.providerId.toString() !== req.user.id) {
+            return res.status(401).json({ message: 'Not authorized to dispute this booking' });
+        }
+
+        if (booking.payoutReleased) {
+            return res.status(400).json({ message: 'Payout has already been released' });
+        }
+
+        if (booking.status !== 'completed') {
+            return res.status(400).json({ message: 'Only completed bookings can be disputed' });
+        }
+
+        booking.status = 'disputed';
+        booking.disputedAt = new Date();
+        await booking.save();
+
+        // Notify Consumer
+        sendNotification(
+            booking.userId,
+            'Booking Disputed ⚠️',
+            `The provider has raised a dispute for your booking. Admin will review.`,
+            { bookingId: booking._id }
+        );
+
+        res.json({
+            message: 'Dispute raised successfully. Admin mediation is requested.',
+            booking
+        });
+    } catch (err) {
+        console.error('Raise dispute error:', err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
+// @route   GET api/bookings/listing/:listingId/booked-slots
+// @desc    Get all booked time slots for a listing on a specific date
+// @access  Private
+router.get('/listing/:listingId/booked-slots', auth, async (req, res) => {
+    try {
+        const { date } = req.query;
+        if (!date) {
+            return res.status(400).json({ message: 'Date query parameter is required' });
+        }
+
+        const bookings = await Booking.find({
+            listingId: req.params.listingId,
+            date: date,
+            status: { $in: ['confirmed', 'completed', 'verified', 'disputed'] }
+        });
+
+        const bookedSlots = bookings.map(b => b.startTime);
+        res.json(bookedSlots);
+    } catch (err) {
+        console.error('Get booked slots error:', err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
 // Helper: Check and Release Funds
 export async function checkAndReleaseFunds(booking) {
     if (booking.consumerVerified && booking.providerVerified && !booking.payoutReleased) {
@@ -336,6 +408,7 @@ export async function checkAndReleaseFunds(booking) {
         
         booking.payoutReleased = true;
         booking.status = 'verified'; // Final state
+        booking.completedAt = new Date();
         await booking.save();
         return booking;
     }
@@ -363,6 +436,7 @@ router.put('/:id/cancel', auth, async (req, res) => {
         }
 
         booking.status = 'cancelled';
+        booking.cancelledAt = new Date();
         await booking.save();
 
         // Notify Provider
@@ -400,6 +474,11 @@ router.put('/:id/status', auth, async (req, res) => {
         }
 
         booking.status = status;
+        if (status === 'confirmed') {
+            booking.confirmedAt = new Date();
+        } else if (status === 'rejected') {
+            booking.rejectedAt = new Date();
+        }
         await booking.save();
 
         res.json(booking);

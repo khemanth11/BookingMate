@@ -29,7 +29,7 @@ export default function ProfileScreen({ route, navigation }) {
             setProfile(profileRes.data);
             setReviews(reviewsRes.data || []);
             // Filter listings by this provider
-            setListings(listingsRes.data.filter(l => 
+            setListings(listingsRes.data.filter(l =>
                 (l.providerId?._id || l.providerId) === providerId
             ));
         } catch (err) {
@@ -85,7 +85,7 @@ export default function ProfileScreen({ route, navigation }) {
                         {profile?.isVerified && <Text style={styles.verifiedCheck}>✅</Text>}
                     </View>
                     <Text style={styles.profileEmail}>{profile?.email || ''}</Text>
-                    
+
                     {profile?.bio ? (
                         <Text style={styles.profileBio}>{profile.bio}</Text>
                     ) : null}
@@ -120,7 +120,7 @@ export default function ProfileScreen({ route, navigation }) {
                                 <Text style={styles.listingName}>{item.name}</Text>
                                 <View style={styles.listingMeta}>
                                     <Text style={styles.listingCategory}>{item.category}</Text>
-                                    <Text style={styles.listingPrice}>₹{item.price}</Text>
+                                    <Text style={styles.listingPrice}>{item.price}</Text>
                                 </View>
                             </View>
                         ))}

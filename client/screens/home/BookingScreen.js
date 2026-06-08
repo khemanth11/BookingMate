@@ -31,6 +31,25 @@ export default function BookingScreen({ route, navigation }) {
     const [blockedDates, setBlockedDates] = useState([]);
     const [showGateway, setShowGateway] = useState(false);
     const [paymentContext, setPaymentContext] = useState(null);
+    const [occupiedSlots, setOccupiedSlots] = useState([]);
+    const [isFetchingSlots, setIsFetchingSlots] = useState(false);
+
+    const fetchOccupiedSlots = async (dateString) => {
+        try {
+            setIsFetchingSlots(true);
+            const token = await AsyncStorage.getItem('token');
+            const listingId = listing._id || listing.id;
+            const res = await axios.get(`${BASE_URL}/api/bookings/listing/${listingId}/booked-slots?date=${dateString}`, {
+                headers: { 'x-auth-token': token }
+            });
+            setOccupiedSlots(res.data || []);
+        } catch (err) {
+            console.error('Error fetching booked slots:', err);
+            setOccupiedSlots([]);
+        } finally {
+            setIsFetchingSlots(false);
+        }
+    };
 
     // Get today's date in YYYY-MM-DD format for minDate
     const today = new Date().toISOString().split('T')[0];
@@ -218,6 +237,7 @@ export default function BookingScreen({ route, navigation }) {
                             if (blockedDates.includes(day.dateString)) return; // Can't select blocked dates
                             setSelectedDate(day.dateString);
                             setSelectedSlot(null);
+                            fetchOccupiedSlots(day.dateString);
                         }}
                         markedDates={{
                             ...blockedDates.reduce((acc, date) => {
@@ -256,18 +276,28 @@ export default function BookingScreen({ route, navigation }) {
                         <View style={styles.slotsGrid}>
                             {TIME_SLOTS.map((slot, index) => {
                                 const isSelected = selectedSlot?.start === slot.start;
+                                const isOccupied = occupiedSlots.includes(slot.start);
                                 return (
                                     <TouchableOpacity
                                         key={index}
-                                        style={[styles.slotCard, isSelected && styles.slotCardActive]}
+                                        style={[
+                                            styles.slotCard,
+                                            isSelected && styles.slotCardActive,
+                                            isOccupied && styles.slotCardOccupied
+                                        ]}
+                                        disabled={isOccupied}
                                         onPress={() => setSelectedSlot(slot)}
                                     >
                                         <Text
-                                            style={[styles.slotLabel, isSelected && styles.slotLabelActive]}
+                                            style={[
+                                                styles.slotLabel,
+                                                isSelected && styles.slotLabelActive,
+                                                isOccupied && styles.slotLabelOccupied
+                                            ]}
                                             numberOfLines={1}
                                             adjustsFontSizeToFit={true}
                                         >
-                                            {slot.label}
+                                            {isOccupied ? `${slot.label} (Booked)` : slot.label}
                                         </Text>
                                     </TouchableOpacity>
                                 );
@@ -282,7 +312,7 @@ export default function BookingScreen({ route, navigation }) {
             <View style={styles.bottomBar}>
                 <View style={styles.summaryContainer}>
                     <Text style={styles.summaryLabel}>Total Amount</Text>
-                    <Text style={styles.summaryValue}>₹{listing.price}</Text>
+                    <Text style={styles.summaryValue}>{listing.price}</Text>
                 </View>
                 <TouchableOpacity
                     style={[
@@ -340,7 +370,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         paddingHorizontal: 20,
-        marginTop: 2,
+        marginTop: -20,
         marginBottom: 20,
     },
     backBtn: {
@@ -425,6 +455,15 @@ const styles = StyleSheet.create({
     slotLabelActive: {
         color: '#111827',
         fontFamily: 'Inter_700Bold',
+    },
+    slotCardOccupied: {
+        backgroundColor: '#f1f5f9',
+        borderColor: '#cbd5e1',
+        opacity: 0.6,
+    },
+    slotLabelOccupied: {
+        color: '#94a3b8',
+        textDecorationLine: 'line-through',
     },
     bottomBar: {
         position: 'absolute',

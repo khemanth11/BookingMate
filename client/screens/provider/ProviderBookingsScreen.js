@@ -26,6 +26,32 @@ export default function ProviderBookingsScreen() {
     const [otpInputs, setOtpInputs] = useState({});
     const [isSubmittingOtp, setIsSubmittingOtp] = useState({});
 
+    const handleRaiseDispute = async (bookingId) => {
+        Alert.alert(
+            'Raise Escrow Dispute?',
+            'Raise a formal dispute for Admin mediation? Select this only if the consumer refuses to share the OTP.',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Raise Dispute',
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            const token = await AsyncStorage.getItem('token');
+                            await axios.put(`${API_URL}/${bookingId}/dispute`, {}, {
+                                headers: { 'x-auth-token': token }
+                            });
+                            Alert.alert('Dispute Raised', 'A dispute has been raised. Platform Admin has been notified to mediate.');
+                            fetchBookings();
+                        } catch (error) {
+                            Alert.alert('Error', error.response?.data?.message || 'Failed to raise dispute.');
+                        }
+                    }
+                }
+            ]
+        );
+    };
+
     const handleVerifyOtp = async (bookingId) => {
         const otp = otpInputs[bookingId];
         if (!otp || otp.length !== 4) {
@@ -153,6 +179,7 @@ export default function ProviderBookingsScreen() {
                 case 'confirmed': return '#10b981'; // Emerald
                 case 'rejected': return '#f43f5e'; // Rose
                 case 'completed': return '#3b82f6'; // Blue
+                case 'disputed': return '#f59e0b'; // Amber
                 default: return '#64748b'; // Slate for Pending
             }
         };
@@ -214,6 +241,18 @@ export default function ProviderBookingsScreen() {
                                 )}
                             </TouchableOpacity>
                         </View>
+                        <TouchableOpacity
+                            style={styles.disputeActionBtn}
+                            onPress={() => handleRaiseDispute(item._id)}
+                        >
+                            <Text style={styles.disputeBtnLabel}>⚠️ Raise Dispute to Admin</Text>
+                        </TouchableOpacity>
+                    </View>
+                )}
+
+                {item.status === 'disputed' && (
+                    <View style={[styles.payoutBadge, { backgroundColor: '#fffbeb', borderColor: '#fde68a' }]}>
+                        <Text style={[styles.payoutText, { color: '#b45309' }]}>⚠️ Disputed: Under Admin Mediation</Text>
                     </View>
                 )}
 
@@ -540,5 +579,19 @@ const styles = StyleSheet.create({
         color: '#ffffff',
         fontFamily: 'Inter_800ExtraBold',
         fontSize: 14,
+    },
+    disputeActionBtn: {
+        marginTop: 12,
+        backgroundColor: '#fffbeb',
+        borderRadius: 10,
+        paddingVertical: 10,
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: '#fde68a',
+    },
+    disputeBtnLabel: {
+        color: '#b45309',
+        fontFamily: 'Inter_700Bold',
+        fontSize: 13,
     },
 });

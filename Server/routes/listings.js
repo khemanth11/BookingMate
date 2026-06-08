@@ -108,7 +108,7 @@ router.post('/', auth, async (req, res) => {
     }
 
     try {
-        const { name, category, price, description, available, location } = req.body;
+        const { name, category, price, description, available, location, image } = req.body;
 
         const newListing = new Listing({
             providerId: req.user.id,
@@ -117,7 +117,8 @@ router.post('/', auth, async (req, res) => {
             price,
             description,
             available,
-            location
+            location,
+            image
         });
 
         const listing = await newListing.save();
@@ -144,13 +145,14 @@ router.put('/:id', auth, async (req, res) => {
             return res.status(401).json({ message: 'Not authorized' });
         }
 
-        const { name, category, price, description, available, location } = req.body;
+        const { name, category, price, description, available, location, image } = req.body;
 
         if (name) listing.name = name;
         if (category) listing.category = category;
         if (price) listing.price = price;
         if (description !== undefined) listing.description = description;
         if (available !== undefined) listing.available = available;
+        if (image !== undefined) listing.image = image;
         if (location) {
             if (location.latitude) listing.location.latitude = location.latitude;
             if (location.longitude) listing.location.longitude = location.longitude;

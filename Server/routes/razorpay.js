@@ -82,13 +82,34 @@ router.post('/verify', auth, async (req, res) => {
         if (razorpay_signature === expectedSign) {
             // Payment successful
             const otp = Math.floor(1000 + Math.random() * 9000).toString();
-            await Booking.findByIdAndUpdate(bookingId, {
-                paymentStatus: 'paid',
-                razorpayOrderId: razorpay_order_id,
-                razorpayPaymentId: razorpay_payment_id,
-                razorpaySignature: razorpay_signature,
-                payoutOtp: otp
-            });
+            
+            const booking = await Booking.findById(bookingId).populate('listingId');
+            if (!booking) {
+                return res.status(404).json({ message: 'Booking not found' });
+            }
+
+            let numericAmount = 0;
+            const priceVal = booking.listingId?.price;
+            if (priceVal) {
+                if (typeof priceVal === 'string') {
+                    const match = priceVal.match(/[\d.]+/);
+                    if (match) {
+                        numericAmount = parseFloat(match[0]);
+                    }
+                } else if (typeof priceVal === 'number') {
+                    numericAmount = priceVal;
+                }
+            }
+
+            booking.paymentStatus = 'paid';
+            booking.razorpayOrderId = razorpay_order_id;
+            booking.razorpayPaymentId = razorpay_payment_id;
+            booking.razorpaySignature = razorpay_signature;
+            booking.payoutOtp = otp;
+            booking.amountPaid = numericAmount;
+            booking.paymentDoneAt = new Date();
+            
+            await booking.save();
             
             return res.status(200).json({ message: "Payment verified successfully", otp });
         } else {
@@ -101,3 +122,4 @@ router.post('/verify', auth, async (req, res) => {
 });
 
 export default router;
+

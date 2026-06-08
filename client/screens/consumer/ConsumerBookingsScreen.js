@@ -119,6 +119,7 @@ export default function ConsumerBookingsScreen() {
                 case 'rejected': return { bg: '#fee2e2', text: '#991b1b' };
                 case 'completed': return { bg: '#eff6ff', text: '#1e40af' }; // Blue for AI verified
                 case 'verified': return { bg: '#dcfce7', text: '#166534' }; // Green for both verified
+                case 'disputed': return { bg: '#fffbeb', text: '#b45309' }; // Amber
                 default: return { bg: '#fef3c7', text: '#92400e' }; // Pending
             }
         };
@@ -187,6 +188,14 @@ export default function ConsumerBookingsScreen() {
                 {item.payoutReleased && (
                     <View style={styles.payoutBadge}>
                         <Text style={styles.payoutText}>💰 Funds Released to Provider</Text>
+                    </View>
+                )}
+
+                {item.status === 'disputed' && (
+                    <View style={styles.disputeNoticeCard}>
+                        <Text style={styles.disputeNoticeText}>
+                            ⚠️ This booking is currently in dispute. Our support team is reviewing the provider's verification photo to resolve this shortly.
+                        </Text>
                     </View>
                 )}
                 {(item.status === 'completed' || item.status === 'verified') && !reviewedBookings[item._id] && (
@@ -553,5 +562,19 @@ const styles = StyleSheet.create({
         fontFamily: 'Inter_800ExtraBold',
         color: '#b45309',
         letterSpacing: 6,
+    },
+    disputeNoticeCard: {
+        backgroundColor: '#fffbeb',
+        borderRadius: 14,
+        padding: 16,
+        marginTop: 16,
+        borderWidth: 1,
+        borderColor: '#fde68a',
+    },
+    disputeNoticeText: {
+        color: '#b45309',
+        fontSize: 13,
+        fontFamily: 'Inter_600SemiBold',
+        lineHeight: 20,
     },
 });

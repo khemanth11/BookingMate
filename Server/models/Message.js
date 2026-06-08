@@ -13,8 +13,12 @@ const messageSchema = new mongoose.Schema({
     },
     text: {
         type: String,
-        required: true,
-        trim: true
+        trim: true,
+        default: ''
+    },
+    image: {
+        type: String,
+        default: null
     },
     createdAt: {
         type: Date,

@@ -35,9 +35,23 @@ router.get('/stats', async (req, res) => {
         const totalListings = await Listing.countDocuments();
         const totalBookings = await Booking.countDocuments();
         
-        // Calculate total revenue (completed bookings * listing price)
-        const completedBookings = await Booking.find({ status: 'completed' }).populate('listingId', 'price');
-        const totalRevenue = completedBookings.reduce((sum, b) => sum + (b.listingId?.price || 0), 0);
+        // Calculate total revenue (paid bookings * parsed numeric listing price)
+        const paidBookings = await Booking.find({ paymentStatus: 'paid' }).populate('listingId', 'price');
+        const totalRevenue = paidBookings.reduce((sum, b) => {
+            const priceVal = b.listingId?.price;
+            let numericAmount = 0;
+            if (priceVal) {
+                if (typeof priceVal === 'string') {
+                    const match = priceVal.match(/[\d.]+/);
+                    if (match) {
+                        numericAmount = parseFloat(match[0]);
+                    }
+                } else if (typeof priceVal === 'number') {
+                    numericAmount = priceVal;
+                }
+            }
+            return sum + (isNaN(numericAmount) ? 0 : numericAmount);
+        }, 0);
 
         res.json({
             users: totalUsers,
@@ -135,12 +149,14 @@ router.put('/bookings/:id/resolve', async (req, res) => {
             booking.status = 'verified';
             booking.consumerVerified = true;
             booking.providerVerified = true;
+            booking.completedAt = new Date();
             await booking.save();
             await checkAndReleaseFunds(booking);
             res.json({ message: 'Booking completed and funds released by admin', booking });
         } else if (action === 'cancel') {
             booking.status = 'cancelled';
             booking.paymentStatus = 'refunded';
+            booking.cancelledAt = new Date();
             await booking.save();
             res.json({ message: 'Booking cancelled and payment refunded by admin', booking });
         } else {

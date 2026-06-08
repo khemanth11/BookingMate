@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer, LineChart, Line
+  Tooltip, ResponsiveContainer, AreaChart, Area
 } from 'recharts';
 
 const API_BASE = 'http://localhost:5000/api/admin';
@@ -22,6 +22,7 @@ function App() {
   const [config, setConfig] = useState({ commissionRate: 10, maintenanceMode: false });
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedDetailedBooking, setSelectedDetailedBooking] = useState(null);
 
   const fetchData = async () => {
     setLoading(true);
@@ -117,36 +118,44 @@ function App() {
   const SidebarItem = ({ id, icon: Icon, label }) => (
     <button
       onClick={() => setActiveTab(id)}
-      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === id
-          ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/20'
-          : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 relative group ${activeTab === id
+        ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/20 translate-x-1 font-bold'
+        : 'text-slate-400 hover:bg-slate-800/40 hover:text-white hover:translate-x-0.5'
         }`}
     >
-      <Icon size={20} />
-      <span className="font-medium whitespace-nowrap">{label}</span>
+      <Icon size={20} className={`transition-transform duration-300 ${activeTab === id ? 'text-white scale-110' : 'text-slate-400 group-hover:text-white'}`} />
+      <span className="font-semibold text-sm whitespace-nowrap">{label}</span>
+      {activeTab === id && (
+        <span className="absolute right-3 w-1.5 h-1.5 bg-white rounded-full shadow-lg shadow-white/80" />
+      )}
     </button>
   );
 
   if (loading && stats.users === 0) {
     return (
-      <div className="min-h-screen bg-[#0f172a] flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
+      <div className="min-h-screen bg-[#030712] flex items-center justify-center relative overflow-hidden">
+        <div className="bg-glow-orb opacity-60"></div>
+        <div className="flex flex-col items-center gap-4 relative z-10">
           <RefreshCw className="text-blue-500 animate-spin" size={40} />
-          <p className="text-slate-400 font-medium">Loading EverythingBooking Admin...</p>
+          <p className="text-slate-400 font-medium tracking-wide">Loading EverythingBooking Admin...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen bg-[#0f172a] text-slate-200 overflow-hidden font-sans">
+    <div className="flex min-h-screen bg-[#030712] text-slate-200 overflow-hidden font-sans relative">
+      {/* Ambient Background Glows */}
+      <div className="bg-glow-orb -top-20 -left-20 opacity-70"></div>
+      <div className="bg-glow-orb bottom-10 right-10 opacity-50" style={{ background: 'radial-gradient(circle, rgba(139, 92, 246, 0.12) 0%, rgba(59, 130, 246, 0.04) 50%, transparent 100%)' }}></div>
+
       {/* Sidebar */}
-      <aside className="w-64 border-r border-slate-800/50 p-6 flex flex-col gap-8 bg-[#0f172a]/50 backdrop-blur-xl">
+      <aside className="w-64 border-r border-slate-900/60 p-6 flex flex-col gap-8 bg-[#080c17]/40 backdrop-blur-xl relative z-10">
         <div className="flex items-center gap-3 px-2">
-          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20">
-            <LayoutDashboard className="text-white" size={24} />
+          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/10 border border-blue-400/20">
+            <LayoutDashboard className="text-white" size={22} />
           </div>
-          <span className="text-xl font-bold tracking-tight text-white">AdminHub</span>
+          <span className="text-xl font-extrabold tracking-tight bg-gradient-to-r from-white via-slate-100 to-slate-400 bg-clip-text text-transparent">AdminHub</span>
         </div>
 
         <nav className="flex-1 flex flex-col gap-2">
@@ -154,13 +163,13 @@ function App() {
           <SidebarItem id="users" icon={Users} label="User Directory" />
           <SidebarItem id="listings" icon={MapPin} label="Service Listings" />
           <SidebarItem id="bookings" icon={Calendar} label="All Bookings" />
-          <div className="my-4 border-t border-slate-800" />
+          <div className="my-4 border-t border-slate-900/60" />
           <SidebarItem id="settings" icon={Settings} label="Settings" />
         </nav>
 
-        <button className="flex items-center gap-3 px-4 py-3 text-slate-500 hover:text-red-400 transition-colors mt-auto">
-          <LogOut size={20} />
-          <span className="font-medium">Logout</span>
+        <button className="flex items-center gap-3 px-4 py-3 text-slate-500 hover:text-red-400 transition-colors mt-auto group">
+          <LogOut size={20} className="group-hover:translate-x-[-2px] transition-transform" />
+          <span className="font-semibold text-sm">Logout</span>
         </button>
       </aside>
 
@@ -200,49 +209,84 @@ function App() {
             {/* Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               {[
-                { label: 'Total Users', value: stats.users, trend: 'Database Live', color: 'blue' },
-                { label: 'Live Services', value: stats.listings, trend: 'Active Now', color: 'emerald' },
-                { label: 'Total Bookings', value: stats.bookings, trend: 'All Time', color: 'purple' },
-                { label: 'Total Revenue', value: `₹${stats.revenue}`, trend: 'Completed', color: 'amber' },
-              ].map((s, idx) => (
-                <div key={idx} className="glass-card flex flex-col gap-3 group hover:border-blue-500/50 transition-all cursor-default">
-                  <span className="text-slate-500 font-bold text-xs uppercase tracking-widest">{s.label}</span>
-                  <div className="flex items-end justify-between">
-                    <span className="text-3xl font-bold text-white tracking-tighter">{s.value}</span>
-                    <span className={`text-${s.color}-400 text-[10px] font-black uppercase tracking-tighter bg-${s.color}-500/10 px-2 py-1 rounded-md`}>{s.trend}</span>
+                { label: 'Total Users', value: stats.users, trend: 'Database Live', color: 'blue', icon: Users },
+                { label: 'Live Listings', value: stats.listings, trend: 'Active Now', color: 'emerald', icon: MapPin },
+                { label: 'Total Bookings', value: stats.bookings, trend: 'All Time', color: 'purple', icon: Calendar },
+                { label: 'Total Revenue', value: `₹${stats.revenue}`, trend: 'Platform Net', color: 'amber', icon: TrendingUp },
+              ].map((s, idx) => {
+                const IconComponent = s.icon;
+                const colorMap = {
+                  blue: { text: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/20', shadow: 'hover:shadow-blue-500/5 hover:border-blue-500/30' },
+                  emerald: { text: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', shadow: 'hover:shadow-emerald-500/5 hover:border-emerald-500/30' },
+                  purple: { text: 'text-purple-400', bg: 'bg-purple-500/10', border: 'border-purple-500/20', shadow: 'hover:shadow-purple-500/5 hover:border-purple-500/30' },
+                  amber: { text: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20', shadow: 'hover:shadow-amber-500/5 hover:border-amber-500/30' },
+                };
+                const theme = colorMap[s.color];
+                return (
+                  <div key={idx} className={`glass-card flex flex-col justify-between h-40 group transition-all duration-300 relative overflow-hidden ${theme.shadow}`}>
+                    <div className="flex justify-between items-start">
+                      <span className="text-slate-500 font-bold text-xs uppercase tracking-widest">{s.label}</span>
+                      <div className={`p-2.5 rounded-xl ${theme.bg} ${theme.text} border ${theme.border} group-hover:scale-110 transition-transform duration-300`}>
+                        <IconComponent size={20} />
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-3xl font-extrabold text-white tracking-tight block">{s.value}</span>
+                      <span className={`inline-block mt-2 ${theme.text} text-[10px] font-black uppercase tracking-tighter ${theme.bg} border ${theme.border} px-2.5 py-0.5 rounded-md`}>
+                        {s.trend}
+                      </span>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             {/* Charts Section */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <div className="glass-card p-6 h-[400px]">
-                <h3 className="text-xl font-bold text-white mb-6">Revenue Scaling</h3>
-                <ResponsiveContainer width="100%" height="85%">
-                  <LineChart data={chartData}>
+              <div className="glass-card p-6 h-[400px] flex flex-col justify-between">
+                <div>
+                  <h3 className="text-lg font-bold text-white tracking-tight">Platform Financial Growth</h3>
+                  <p className="text-xs text-slate-400 mt-1">Timeline scale representing accumulated platform booking volume.</p>
+                </div>
+                <ResponsiveContainer width="100%" height="75%">
+                  <AreaChart data={chartData}>
+                    <defs>
+                      <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.35}/>
+                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.0}/>
+                      </linearGradient>
+                    </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
                     <XAxis dataKey="name" stroke="#64748b" axisLine={false} tickLine={false} dy={10} />
                     <YAxis stroke="#64748b" axisLine={false} tickLine={false} dx={-10} />
                     <Tooltip
-                      contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '12px', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                      contentStyle={{ backgroundColor: '#090d16', border: '1px solid #1e293b', borderRadius: '16px', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.3)', backdropFilter: 'blur(12px)' }}
                       itemStyle={{ color: '#fff' }}
                     />
-                    <Line type="monotone" dataKey="revenue" stroke="#3b82f6" strokeWidth={4} dot={{ r: 6, fill: '#3b82f6', strokeWidth: 0 }} activeDot={{ r: 8, strokeWidth: 0 }} />
-                  </LineChart>
+                    <Area type="monotone" dataKey="revenue" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" dot={{ r: 4, fill: '#3b82f6', strokeWidth: 0 }} activeDot={{ r: 6, strokeWidth: 0 }} />
+                  </AreaChart>
                 </ResponsiveContainer>
               </div>
-              <div className="glass-card p-6 h-[400px]">
-                <h3 className="text-xl font-bold text-white mb-6">Market Adoption</h3>
-                <ResponsiveContainer width="100%" height="85%">
+              <div className="glass-card p-6 h-[400px] flex flex-col justify-between">
+                <div>
+                  <h3 className="text-lg font-bold text-white tracking-tight">Booking Volume Adoption</h3>
+                  <p className="text-xs text-slate-400 mt-1">Comparison of reservation count growth across standard quarters.</p>
+                </div>
+                <ResponsiveContainer width="100%" height="75%">
                   <BarChart data={chartData}>
+                    <defs>
+                      <linearGradient id="colorBookings" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.8}/>
+                        <stop offset="95%" stopColor="#6366f1" stopOpacity={0.15}/>
+                      </linearGradient>
+                    </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
                     <XAxis dataKey="name" stroke="#64748b" axisLine={false} tickLine={false} dy={10} />
                     <YAxis stroke="#64748b" axisLine={false} tickLine={false} dx={-10} />
                     <Tooltip
-                      contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '12px' }}
+                      contentStyle={{ backgroundColor: '#090d16', border: '1px solid #1e293b', borderRadius: '16px', backdropFilter: 'blur(12px)' }}
                     />
-                    <Bar dataKey="bookings" fill="#8b5cf6" radius={[6, 6, 0, 0]} barSize={40} />
+                    <Bar dataKey="bookings" fill="url(#colorBookings)" radius={[6, 6, 0, 0]} barSize={40} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -298,8 +342,8 @@ function App() {
                           <button
                             onClick={() => handleVerifyUser(u._id)}
                             className={`px-4 py-2 rounded-lg font-bold text-xs transition-all ${u.isVerified
-                                ? 'bg-slate-800 text-slate-400 hover:bg-red-500/20 hover:text-red-400'
-                                : 'bg-blue-600 text-white hover:bg-blue-500 shadow-lg shadow-blue-500/20 hover:scale-105 active:scale-95'
+                              ? 'bg-slate-800 text-slate-400 hover:bg-red-500/20 hover:text-red-400'
+                              : 'bg-blue-600 text-white hover:bg-blue-500 shadow-lg shadow-blue-500/20 hover:scale-105 active:scale-95'
                               }`}
                           >
                             {u.isVerified ? 'Revoke KYC' : 'Verify (KYC)'}
@@ -320,30 +364,44 @@ function App() {
         {activeTab === 'listings' && (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 animate-in slide-in-from-bottom-4 duration-500">
             {filteredListings.map((l) => (
-              <div key={l._id} className="glass-card group hover:border-red-500/30 transition-all">
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <span className="text-[10px] font-black uppercase tracking-widest text-blue-500 bg-blue-500/10 px-2 py-0.5 rounded-full mb-2 inline-block">
-                      {l.category}
-                    </span>
-                    <h3 className="text-lg font-bold text-white group-hover:text-blue-400 transition-colors">{l.name}</h3>
+              <div key={l._id} className="glass-card group hover:border-blue-500/30 transition-all flex flex-col justify-between">
+                <div>
+                  {/* Showcase Image Header */}
+                  {l.image ? (
+                    <img 
+                      src={l.image} 
+                      className="w-full h-40 object-cover rounded-2xl mb-4 border border-slate-800/80 group-hover:border-slate-700 transition-all duration-300" 
+                      alt={l.name} 
+                    />
+                  ) : (
+                    <div className="w-full h-40 bg-gradient-to-tr from-indigo-950/40 via-slate-900/40 to-blue-950/40 rounded-2xl mb-4 flex items-center justify-center border border-slate-800/80 group-hover:border-slate-700/50 transition-all duration-300">
+                      <MapPin className="text-indigo-500/20" size={32} />
+                    </div>
+                  )}
+                  <div className="flex justify-between items-start mb-4">
+                    <div>
+                      <span className="text-[10px] font-black uppercase tracking-widest text-blue-500 bg-blue-500/10 px-2.5 py-0.5 rounded-full mb-2 inline-block border border-blue-500/10">
+                        {l.category}
+                      </span>
+                      <h3 className="text-lg font-bold text-white group-hover:text-blue-400 transition-colors">{l.name}</h3>
+                    </div>
+                    <button
+                      onClick={() => handleDeleteListing(l._id)}
+                      className="p-2 text-slate-500 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
+                    >
+                      <Trash2 size={20} />
+                    </button>
                   </div>
-                  <button
-                    onClick={() => handleDeleteListing(l._id)}
-                    className="p-2 text-slate-500 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
-                  >
-                    <Trash2 size={20} />
-                  </button>
+                  <p className="text-slate-400 text-sm line-clamp-2 mb-6 h-10">{l.description}</p>
                 </div>
-                <p className="text-slate-400 text-sm line-clamp-2 mb-6 h-10">{l.description}</p>
                 <div className="flex items-center justify-between pt-4 border-t border-slate-800/50">
                   <div className="flex items-center gap-2">
                     <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-xs font-bold text-slate-400">
-                      {l.providerId?.name.charAt(0)}
+                      {l.providerId?.name?.charAt(0) || 'P'}
                     </div>
-                    <span className="text-xs text-slate-400 font-medium">{l.providerId?.name}</span>
+                    <span className="text-xs text-slate-400 font-semibold">{l.providerId?.name || 'Provider'}</span>
                   </div>
-                  <span className="text-lg font-bold text-white tracking-tighter">₹{l.price}</span>
+                  <span className="text-lg font-bold text-white tracking-tighter">{l.price}</span>
                 </div>
               </div>
             ))}
@@ -394,36 +452,44 @@ function App() {
                       </td>
                       <td className="px-6 py-4">
                         <span className={`px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-tighter ${b.status === 'verified' ? 'bg-emerald-500/10 text-emerald-400' :
-                            b.status === 'completed' ? 'bg-blue-500/10 text-blue-400' :
-                              b.status === 'confirmed' ? 'bg-indigo-500/10 text-indigo-400' :
-                                b.status === 'cancelled' ? 'bg-red-500/10 text-red-400' : 'bg-slate-500/10 text-slate-400'
+                          b.status === 'completed' ? 'bg-blue-500/10 text-blue-400' :
+                            b.status === 'confirmed' ? 'bg-indigo-500/10 text-indigo-400' :
+                              b.status === 'cancelled' ? 'bg-red-500/10 text-red-400' :
+                                b.status === 'disputed' ? 'bg-amber-500/10 text-amber-400 animate-pulse border border-amber-500/20' :
+                                  'bg-slate-500/10 text-slate-400'
                           }`}>
                           {b.status}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-right">
-                        <div className="flex justify-end gap-2">
-                          {['pending', 'confirmed', 'completed'].includes(b.status) && (
+                      <td className="px-6 py-4">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => setSelectedDetailedBooking(b)}
+                            className="bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white px-3 py-1.5 rounded-lg font-bold text-xs transition-all border border-slate-700/50 mr-auto whitespace-nowrap"
+                          >
+                            View All Details
+                          </button>
+                          {['pending', 'confirmed', 'completed', 'disputed'].includes(b.status) && (
                             <>
                               <button
                                 onClick={() => handleResolveBooking(b._id, 'complete')}
-                                className="bg-emerald-600 text-white hover:bg-emerald-500 px-3 py-1.5 rounded-lg font-bold text-xs transition-all shadow-lg shadow-emerald-500/20"
+                                className="bg-emerald-600 text-white hover:bg-emerald-500 px-3 py-1.5 rounded-lg font-bold text-xs transition-all shadow-lg shadow-emerald-500/20 whitespace-nowrap"
                               >
                                 Force Release
                               </button>
                               <button
                                 onClick={() => handleResolveBooking(b._id, 'cancel')}
-                                className="bg-red-600 text-white hover:bg-red-500 px-3 py-1.5 rounded-lg font-bold text-xs transition-all shadow-lg shadow-red-500/20"
+                                className="bg-red-600 text-white hover:bg-red-500 px-3 py-1.5 rounded-lg font-bold text-xs transition-all shadow-lg shadow-red-500/20 whitespace-nowrap"
                               >
                                 Cancel & Refund
                               </button>
                             </>
                           )}
                           {b.status === 'verified' && (
-                            <span className="text-xs text-emerald-500 font-bold">Payout Settled</span>
+                            <span className="text-xs text-emerald-500 font-bold whitespace-nowrap">Payout Settled</span>
                           )}
                           {b.status === 'cancelled' && (
-                            <span className="text-xs text-red-400 font-bold">Cancelled / Refunded</span>
+                            <span className="text-xs text-red-400 font-bold whitespace-nowrap">Cancelled / Refunded</span>
                           )}
                         </div>
                       </td>
@@ -484,6 +550,367 @@ function App() {
                 Save Configurations
               </button>
             </form>
+          </div>
+        )}
+
+        {selectedDetailedBooking && (
+          <div className="fixed inset-0 z-50 bg-[#020617]/80 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-[#0f172a] border border-slate-800 rounded-3xl w-full max-w-3xl overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+              {/* Modal Header */}
+              <div className="px-6 py-5 border-b border-slate-800 flex justify-between items-center bg-[#1e293b]/20">
+                <div>
+                  <h3 className="text-lg font-bold text-white">Booking Details</h3>
+                  <p className="text-xs text-slate-400 mt-1">ID: {selectedDetailedBooking._id}</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className={`px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-tighter ${selectedDetailedBooking.status === 'verified' ? 'bg-emerald-500/10 text-emerald-400' :
+                    selectedDetailedBooking.status === 'completed' ? 'bg-blue-500/10 text-blue-400' :
+                      selectedDetailedBooking.status === 'confirmed' ? 'bg-indigo-500/10 text-indigo-400' :
+                        selectedDetailedBooking.status === 'cancelled' ? 'bg-red-500/10 text-red-400' :
+                          selectedDetailedBooking.status === 'disputed' ? 'bg-amber-500/10 text-amber-400 animate-pulse border border-amber-500/20' :
+                            'bg-slate-500/10 text-slate-400'
+                    }`}>
+                    {selectedDetailedBooking.status}
+                  </span>
+                  <button
+                    onClick={() => setSelectedDetailedBooking(null)}
+                    className="p-1 rounded-lg hover:bg-slate-800 transition-colors text-slate-400 hover:text-white"
+                  >
+                    <XCircle size={24} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Modal Body */}
+              <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6 max-h-[70vh] overflow-y-auto">
+                {/* Column 1: Parties */}
+                <div className="space-y-6">
+                  {/* Consumer Details */}
+                  <div className="bg-slate-900/40 border border-slate-800/60 p-4 rounded-2xl">
+                    <h4 className="text-sm font-bold text-blue-400 mb-3 flex items-center gap-2">🧑‍💻 Consumer Profile</h4>
+                    <p className="text-sm text-white font-bold">{selectedDetailedBooking.userId?.name || 'Anonymous User'}</p>
+                    <p className="text-xs text-slate-400 mt-1">Email: {selectedDetailedBooking.userId?.email || 'N/A'}</p>
+                    <p className="text-xs text-slate-400 mt-1">Phone: {selectedDetailedBooking.userId?.phone || 'N/A'}</p>
+                  </div>
+
+                  {/* Provider Details */}
+                  <div className="bg-slate-900/40 border border-slate-800/60 p-4 rounded-2xl">
+                    <h4 className="text-sm font-bold text-indigo-400 mb-3 flex items-center gap-2">🧑‍🔧 Service Provider</h4>
+                    <p className="text-sm text-white font-bold">{selectedDetailedBooking.providerId?.name || 'Local Expert'}</p>
+                    <p className="text-xs text-slate-400 mt-1">Email: {selectedDetailedBooking.providerId?.email || 'N/A'}</p>
+                    <p className="text-xs text-slate-400 mt-1">Phone: {selectedDetailedBooking.providerId?.phone || 'N/A'}</p>
+                  </div>
+
+                  {/* Service Details */}
+                  <div className="bg-slate-900/40 border border-slate-800/60 p-4 rounded-2xl">
+                    <h4 className="text-sm font-bold text-emerald-400 mb-3 flex items-center gap-2">📋 Service Portfolio</h4>
+                    <p className="text-sm text-white font-bold">{selectedDetailedBooking.listingId?.name || 'Deleted Service'}</p>
+                    <p className="text-xs text-slate-400 mt-1">Category: {selectedDetailedBooking.listingId?.category || 'General'}</p>
+                    <p className="text-xs text-white mt-1 font-bold">Standard Price: {selectedDetailedBooking.listingId?.price || 'N/A'}</p>
+                  </div>
+                </div>
+
+                {/* Column 2: Status & Payment */}
+                <div className="space-y-6">
+                  {/* Schedule Details */}
+                  <div className="bg-slate-900/40 border border-slate-800/60 p-4 rounded-2xl">
+                    <h4 className="text-sm font-bold text-purple-400 mb-3 flex items-center gap-2">📅 Schedule Information</h4>
+                    <p className="text-sm text-white font-bold">Date: {selectedDetailedBooking.date}</p>
+                    <p className="text-xs text-slate-400 mt-1">Time Window: {selectedDetailedBooking.startTime} - {selectedDetailedBooking.endTime}</p>
+                    <p className="text-xs text-slate-400 mt-2 italic">Created At: {new Date(selectedDetailedBooking.createdAt).toLocaleString()}</p>
+                  </div>
+
+                  {/* Payment Details */}
+                  <div className="bg-slate-900/40 border border-slate-800/60 p-4 rounded-2xl">
+                    <h4 className="text-sm font-bold text-amber-400 mb-3 flex items-center gap-2">💰 Escrow Payment Details</h4>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-slate-400">Payment Status:</span>
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${selectedDetailedBooking.paymentStatus === 'paid' ? 'bg-emerald-500/10 text-emerald-400' :
+                        selectedDetailedBooking.paymentStatus === 'refunded' ? 'bg-red-500/10 text-red-400' :
+                          'bg-slate-500/10 text-slate-400'
+                        }`}>
+                        {selectedDetailedBooking.paymentStatus}
+                      </span>
+                    </div>
+                    {selectedDetailedBooking.razorpayOrderId && (
+                      <p className="text-xs text-slate-500 mt-2 font-mono">Order ID: {selectedDetailedBooking.razorpayOrderId}</p>
+                    )}
+                    {selectedDetailedBooking.razorpayPaymentId && (
+                      <p className="text-xs text-slate-500 mt-1 font-mono">Payment ID: {selectedDetailedBooking.razorpayPaymentId}</p>
+                    )}
+                  </div>
+
+                  {/* Dual Verification Escrow */}
+                  <div className="bg-slate-900/40 border border-slate-800/60 p-4 rounded-2xl space-y-2.5">
+                    <h4 className="text-sm font-bold text-red-400 mb-1 flex items-center gap-2">🔑 Escrow Release Status</h4>
+                    <div className="flex justify-between items-center text-xs text-slate-400 border-b border-slate-800/50 pb-2">
+                      <span>Groq AI Completion Image:</span>
+                      <span className={selectedDetailedBooking.providerVerified ? 'text-emerald-400 font-bold' : 'text-slate-500 font-bold'}>
+                        {selectedDetailedBooking.providerVerified ? '✓ VERIFIED' : '○ PENDING'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center text-xs text-slate-400 border-b border-slate-800/50 pb-2">
+                      <span>Consumer Handshake:</span>
+                      <span className={selectedDetailedBooking.consumerVerified ? 'text-emerald-400 font-bold' : 'text-slate-500 font-bold'}>
+                        {selectedDetailedBooking.consumerVerified ? '✓ VERIFIED' : '○ PENDING'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center text-xs text-slate-400 border-b border-slate-800/50 pb-2">
+                      <span>Secure Handshake OTP:</span>
+                      <span className="text-white font-mono bg-slate-800 px-2 py-0.5 rounded font-bold">
+                        {selectedDetailedBooking.payoutOtp || 'NONE'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center text-xs text-slate-400">
+                      <span>Escrow Released to Provider:</span>
+                      <span className={selectedDetailedBooking.payoutReleased ? 'text-emerald-400 font-bold animate-pulse' : 'text-slate-500 font-bold'}>
+                        {selectedDetailedBooking.payoutReleased ? '✓ RELEASED' : '○ LOCKED'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Visual Timeline Section */}
+                <div className="col-span-1 md:col-span-2 border-t border-slate-800/60 pt-6 mt-2">
+                  <h4 className="text-sm font-bold text-slate-300 mb-5 flex items-center gap-2">⏱️ Booking Lifecycle & Audit Timeline</h4>
+                  <div className="relative pl-8 space-y-6 before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-[2px] before:bg-slate-800">
+                    
+                    {/* Step 1: Requested */}
+                    <div className="relative">
+                      <div className="absolute -left-[29px] top-1 w-6 h-6 rounded-full bg-emerald-500/10 border-2 border-emerald-500 flex items-center justify-center text-[10px] text-emerald-400 font-bold">✓</div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h5 className="text-xs font-bold text-white uppercase tracking-wider">Booking Initialized</h5>
+                          <span className="text-[10px] text-slate-500 font-mono">{new Date(selectedDetailedBooking.createdAt).toLocaleString()}</span>
+                        </div>
+                        <p className="text-xs text-slate-400 mt-1">Consumer requested service booking with initial status set to pending.</p>
+                      </div>
+                    </div>
+
+                    {/* Step 2: Provider Response */}
+                    <div className="relative">
+                      {selectedDetailedBooking.confirmedAt || selectedDetailedBooking.rejectedAt || selectedDetailedBooking.cancelledAt ? (
+                        <>
+                          <div className={`absolute -left-[29px] top-1 w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                            selectedDetailedBooking.rejectedAt || selectedDetailedBooking.status === 'rejected' ? 'bg-red-500/10 border-2 border-red-500 text-red-400' :
+                            selectedDetailedBooking.cancelledAt ? 'bg-amber-500/10 border-2 border-amber-500 text-amber-400' :
+                            'bg-emerald-500/10 border-2 border-emerald-500 text-emerald-400'
+                          }`}>
+                            {selectedDetailedBooking.rejectedAt || selectedDetailedBooking.status === 'rejected' || selectedDetailedBooking.cancelledAt ? '✗' : '✓'}
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h5 className="text-xs font-bold text-white uppercase tracking-wider">
+                                {selectedDetailedBooking.rejectedAt || selectedDetailedBooking.status === 'rejected' ? 'Request Rejected' :
+                                 selectedDetailedBooking.cancelledAt ? 'Request Cancelled' : 'Request Confirmed'}
+                              </h5>
+                              <span className="text-[10px] text-slate-500 font-mono">
+                                {new Date(selectedDetailedBooking.confirmedAt || selectedDetailedBooking.rejectedAt || selectedDetailedBooking.cancelledAt).toLocaleString()}
+                              </span>
+                            </div>
+                            <p className="text-xs text-slate-400 mt-1">
+                              {selectedDetailedBooking.rejectedAt || selectedDetailedBooking.status === 'rejected' ? 'Provider rejected the booking request.' :
+                               selectedDetailedBooking.cancelledAt ? 'Booking cancelled by consumer/admin.' :
+                               'Provider accepted the booking request and locked the slot.'}
+                            </p>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="absolute -left-[29px] top-1 w-6 h-6 rounded-full bg-slate-800/80 border-2 border-slate-700 flex items-center justify-center text-[10px] text-slate-500 font-bold">○</div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h5 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Awaiting Provider Acceptance</h5>
+                            </div>
+                            <p className="text-xs text-slate-500 mt-1">The provider has not yet accepted or rejected this request.</p>
+                          </div>
+                        </>
+                      )}
+                    </div>
+
+                    {/* Step 3: Payment */}
+                    <div className="relative">
+                      {selectedDetailedBooking.paymentStatus === 'paid' || selectedDetailedBooking.paymentStatus === 'refunded' ? (
+                        <>
+                          <div className={`absolute -left-[29px] top-1 w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                            selectedDetailedBooking.paymentStatus === 'refunded' ? 'bg-red-500/10 border-2 border-red-500 text-red-400' :
+                            'bg-emerald-500/10 border-2 border-emerald-500 text-emerald-400'
+                          }`}>
+                            {selectedDetailedBooking.paymentStatus === 'refunded' ? '✗' : '✓'}
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h5 className="text-xs font-bold text-white uppercase tracking-wider">
+                                {selectedDetailedBooking.paymentStatus === 'refunded' ? 'Payment Refunded' : 'Payment Deposited'}
+                              </h5>
+                              {selectedDetailedBooking.paymentDoneAt && (
+                                <span className="text-[10px] text-slate-500 font-mono">{new Date(selectedDetailedBooking.paymentDoneAt).toLocaleString()}</span>
+                              )}
+                            </div>
+                            <p className="text-xs text-slate-400 mt-1">
+                              {selectedDetailedBooking.paymentStatus === 'refunded' ? 
+                                `Escrow payment of ₹${selectedDetailedBooking.amountPaid || '...'} was refunded to the consumer.` : 
+                                `Escrow payment of ₹${selectedDetailedBooking.amountPaid || '...'} deposited successfully via Razorpay.`}
+                            </p>
+                            {selectedDetailedBooking.razorpayPaymentId && (
+                              <p className="text-[10px] text-slate-500 font-mono mt-0.5">Transaction ID: {selectedDetailedBooking.razorpayPaymentId}</p>
+                            )}
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="absolute -left-[29px] top-1 w-6 h-6 rounded-full bg-slate-800/80 border-2 border-slate-700 flex items-center justify-center text-[10px] text-slate-500 font-bold">○</div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h5 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Awaiting Payment Deposit</h5>
+                            </div>
+                            <p className="text-xs text-slate-500 mt-1">Consumer must complete the payment to hold and verify this booking slot.</p>
+                          </div>
+                        </>
+                      )}
+                    </div>
+
+                    {/* Step 4: Verification */}
+                    <div className="relative">
+                      {selectedDetailedBooking.providerVerified || selectedDetailedBooking.consumerVerified || selectedDetailedBooking.status === 'disputed' ? (
+                        <>
+                          <div className={`absolute -left-[29px] top-1 w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                            selectedDetailedBooking.status === 'disputed' ? 'bg-amber-500/10 border-2 border-amber-500 text-amber-400' :
+                            selectedDetailedBooking.providerVerified && selectedDetailedBooking.consumerVerified ? 'bg-emerald-500/10 border-2 border-emerald-500 text-emerald-400' :
+                            'bg-blue-500/10 border-2 border-blue-500 text-blue-400'
+                          }`}>
+                            {selectedDetailedBooking.status === 'disputed' ? '!' : 
+                             selectedDetailedBooking.providerVerified && selectedDetailedBooking.consumerVerified ? '✓' : '○'}
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h5 className="text-xs font-bold text-white uppercase tracking-wider">
+                                {selectedDetailedBooking.status === 'disputed' ? 'Dispute Raised' : 'Completion Handshake'}
+                              </h5>
+                              {selectedDetailedBooking.disputedAt && selectedDetailedBooking.status === 'disputed' && (
+                                <span className="text-[10px] text-slate-500 font-mono">{new Date(selectedDetailedBooking.disputedAt).toLocaleString()}</span>
+                              )}
+                            </div>
+                            <div className="text-xs text-slate-400 mt-1 space-y-1">
+                              {selectedDetailedBooking.status === 'disputed' ? (
+                                <p className="text-amber-400 font-semibold">⚠️ Provider raised an escrow dispute. Awaiting admin intervention.</p>
+                              ) : (
+                                <>
+                                  <p>AI image check: <span className={selectedDetailedBooking.providerVerified ? 'text-emerald-400 font-bold' : 'text-slate-500'}>{selectedDetailedBooking.providerVerified ? '✓ Verified' : '○ Pending'}</span></p>
+                                  <p>Consumer handshake: <span className={selectedDetailedBooking.consumerVerified ? 'text-emerald-400 font-bold' : 'text-slate-500'}>{selectedDetailedBooking.consumerVerified ? '✓ Verified' : '○ Pending'}</span></p>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="absolute -left-[29px] top-1 w-6 h-6 rounded-full bg-slate-800/80 border-2 border-slate-700 flex items-center justify-center text-[10px] text-slate-500 font-bold">○</div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h5 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Completion Verification Pending</h5>
+                            </div>
+                            <p className="text-xs text-slate-500 mt-1">Waiting for provider's completion photo and consumer's OTP validation.</p>
+                          </div>
+                        </>
+                      )}
+                    </div>
+
+                    {/* Step 5: Funds Released */}
+                    <div className="relative">
+                      {selectedDetailedBooking.payoutReleased || selectedDetailedBooking.status === 'verified' || selectedDetailedBooking.status === 'cancelled' ? (
+                        <>
+                          <div className={`absolute -left-[29px] top-1 w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                            selectedDetailedBooking.status === 'cancelled' ? 'bg-red-500/10 border-2 border-red-500 text-red-400' :
+                            'bg-emerald-500/10 border-2 border-emerald-500 text-emerald-400'
+                          }`}>
+                            {selectedDetailedBooking.status === 'cancelled' ? '✗' : '✓'}
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h5 className="text-xs font-bold text-white uppercase tracking-wider">
+                                {selectedDetailedBooking.status === 'cancelled' ? 'Escrow Cancelled' : 'Payout Settlement'}
+                              </h5>
+                              {selectedDetailedBooking.completedAt && (
+                                <span className="text-[10px] text-slate-500 font-mono">{new Date(selectedDetailedBooking.completedAt).toLocaleString()}</span>
+                              )}
+                            </div>
+                            <p className="text-xs text-slate-400 mt-1">
+                              {selectedDetailedBooking.status === 'cancelled' ? 
+                                'Escrow terminated. Funds are not released to provider.' : 
+                                'Funds released successfully. Platforms commission deducted and net earnings transferred.'}
+                            </p>
+                            
+                            {/* Fee breakdown details */}
+                            {selectedDetailedBooking.amountPaid > 0 && !selectedDetailedBooking.cancelledAt && (
+                              <div className="mt-3 bg-slate-950/40 border border-slate-800 p-3 rounded-xl max-w-md text-xs space-y-1.5 font-medium">
+                                <div className="flex justify-between">
+                                  <span className="text-slate-400">Total Booking Price:</span>
+                                  <span className="text-white">₹{selectedDetailedBooking.amountPaid.toFixed(2)}</span>
+                                </div>
+                                <div className="flex justify-between text-slate-400 border-b border-slate-900 pb-1.5">
+                                  <span>Platform Fee ({config?.commissionRate || 10}%):</span>
+                                  <span className="text-red-400">- ₹{(selectedDetailedBooking.amountPaid * (config?.commissionRate || 10) / 100).toFixed(2)}</span>
+                                </div>
+                                <div className="flex justify-between font-bold text-sm pt-0.5">
+                                  <span className="text-emerald-400">Net Provider Earnings:</span>
+                                  <span className="text-emerald-400">₹{(selectedDetailedBooking.amountPaid - (selectedDetailedBooking.amountPaid * (config?.commissionRate || 10) / 100)).toFixed(2)}</span>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="absolute -left-[29px] top-1 w-6 h-6 rounded-full bg-slate-800/80 border-2 border-slate-700 flex items-center justify-center text-[10px] text-slate-500 font-bold">○</div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h5 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Payout Locked in Escrow</h5>
+                            </div>
+                            <p className="text-xs text-slate-500 mt-1">Payout will be automatically released when verification requirements are satisfied.</p>
+                          </div>
+                        </>
+                      )}
+                    </div>
+
+                  </div>
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="px-6 py-4 border-t border-slate-800 bg-[#1e293b]/20 flex justify-between items-center">
+                <div className="flex gap-2">
+                  {['pending', 'confirmed', 'completed', 'disputed'].includes(selectedDetailedBooking.status) && (
+                    <>
+                      <button
+                        onClick={() => {
+                          handleResolveBooking(selectedDetailedBooking._id, 'complete');
+                          setSelectedDetailedBooking(null);
+                        }}
+                        className="bg-emerald-600 text-white hover:bg-emerald-500 px-4 py-2 rounded-xl font-bold text-xs transition-all shadow-lg shadow-emerald-500/20"
+                      >
+                        Force Release Escrow
+                      </button>
+                      <button
+                        onClick={() => {
+                          handleResolveBooking(selectedDetailedBooking._id, 'cancel');
+                          setSelectedDetailedBooking(null);
+                        }}
+                        className="bg-red-600 text-white hover:bg-red-500 px-4 py-2 rounded-xl font-bold text-xs transition-all shadow-lg shadow-red-500/20"
+                      >
+                        Cancel & Refund
+                      </button>
+                    </>
+                  )}
+                </div>
+                <button
+                  onClick={() => setSelectedDetailedBooking(null)}
+                  className="bg-slate-800 hover:bg-slate-700 text-white px-5 py-2 rounded-xl font-bold text-xs border border-slate-700 transition-all"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </main>

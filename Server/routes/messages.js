@@ -35,9 +35,9 @@ router.get('/:bookingId', auth, async (req, res) => {
             return res.status(401).json({ message: 'Unauthorized access to this chat' });
         }
 
-        // Security check 2: Chat is only allowed if the booking is currently 'confirmed'
-        if (booking.status !== 'confirmed') {
-            return res.status(403).json({ message: 'Chat is only available for confirmed bookings.' });
+        // Security check 2: Chat is allowed if the booking is confirmed, completed, or disputed
+        if (!['confirmed', 'completed', 'disputed'].includes(booking.status)) {
+            return res.status(403).json({ message: 'Chat is not available for this booking status.' });
         }
 
         const messages = await Message.find({ bookingId: req.params.bookingId }).sort({ createdAt: 1 });
