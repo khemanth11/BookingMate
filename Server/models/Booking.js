@@ -69,6 +69,8 @@ const bookingSchema = new mongoose.Schema({
     disputedAt: { type: Date },
     completedAt: { type: Date },
     cancelledAt: { type: Date },
+    disputeReason: { type: String, default: null },
+    commissionEarned: { type: Number, default: 0 },
     createdAt: {
         type: Date,
         default: Date.now

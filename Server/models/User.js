@@ -48,6 +48,17 @@ const userSchema = new mongoose.Schema({
         type: String,
         default: null
     },
+    bankDetails: {
+        accountNumber: { type: String, default: '' },
+        ifscCode: { type: String, default: '' },
+        accountHolderName: { type: String, default: '' },
+        upiId: { type: String, default: '' }
+    },
+    kycDocument: {
+        idType: { type: String, default: '' },
+        base64Data: { type: String, default: '' },
+        status: { type: String, enum: ['none', 'pending', 'verified', 'rejected'], default: 'none' }
+    },
     favorites: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Listing'

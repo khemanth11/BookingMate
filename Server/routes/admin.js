@@ -2,6 +2,8 @@ import express from 'express';
 import User from '../models/User.js';
 import Listing from '../models/Listing.js';
 import Booking from '../models/Booking.js';
+import Wallet from '../models/Wallet.js';
+import Review from '../models/Review.js';
 import jwt from 'jsonwebtoken';
 import { checkAndReleaseFunds } from './bookings.js';
 import Config from '../models/Config.js';
@@ -52,12 +54,16 @@ router.get('/stats', async (req, res) => {
             }
             return sum + (isNaN(numericAmount) ? 0 : numericAmount);
         }, 0);
+        // Calculate platform net commission profit
+        const verifiedBookings = await Booking.find({ status: 'verified' });
+        const netProfit = verifiedBookings.reduce((sum, b) => sum + (b.commissionEarned || 0), 0);
 
         res.json({
             users: totalUsers,
             listings: totalListings,
             bookings: totalBookings,
-            revenue: totalRevenue
+            revenue: totalRevenue,
+            netProfit: netProfit
         });
     } catch (err) {
         console.error(err.message);
@@ -200,6 +206,152 @@ router.put('/settings', async (req, res) => {
         res.json(config);
     } catch (err) {
         console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
+// @route   GET /api/admin/payouts
+// @desc    Get all withdrawal/payout requests (pending, completed, rejected)
+router.get('/payouts', async (req, res) => {
+    try {
+        const wallets = await Wallet.find({
+            'transactions.type': 'debit'
+        }).populate('providerId', 'name email phone bankDetails');
+
+        const allPayouts = [];
+        wallets.forEach(wallet => {
+            wallet.transactions.forEach(tx => {
+                if (tx.type === 'debit') {
+                    allPayouts.push({
+                        walletId: wallet._id,
+                        transactionId: tx._id,
+                        provider: wallet.providerId,
+                        amount: tx.amount,
+                        status: tx.status,
+                        timestamp: tx.timestamp
+                    });
+                }
+            });
+        });
+
+        allPayouts.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+        res.json(allPayouts);
+    } catch (err) {
+        console.error('Error fetching payouts:', err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
+// @route   PUT /api/admin/payouts/:walletId/transaction/:txId/resolve
+// @desc    Approve or Reject a pending payout request
+router.put('/payouts/:walletId/transaction/:txId/resolve', async (req, res) => {
+    try {
+        const { action } = req.body;
+        const { walletId, txId } = req.params;
+
+        if (!['approve', 'reject'].includes(action)) {
+            return res.status(400).json({ message: 'Invalid action. Must be approve or reject.' });
+        }
+
+        const wallet = await Wallet.findById(walletId);
+        if (!wallet) {
+            return res.status(404).json({ message: 'Wallet not found' });
+        }
+
+        const tx = wallet.transactions.id(txId);
+        if (!tx) {
+            return res.status(404).json({ message: 'Transaction not found' });
+        }
+
+        if (tx.status !== 'pending') {
+            return res.status(400).json({ message: 'Transaction is already resolved' });
+        }
+
+        if (action === 'approve') {
+            tx.status = 'completed';
+        } else if (action === 'reject') {
+            tx.status = 'rejected';
+            wallet.balance += tx.amount;
+        }
+
+        await wallet.save();
+        res.json({ message: `Payout request ${action}d successfully`, wallet });
+    } catch (err) {
+        console.error('Error resolving payout:', err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
+// @route   GET /api/admin/reviews
+// @desc    Get all reviews for moderation
+router.get('/reviews', async (req, res) => {
+    try {
+        const reviews = await Review.find()
+            .populate('reviewerId', 'name email')
+            .populate('revieweeId', 'name email')
+            .populate('listingId', 'name category')
+            .sort({ createdAt: -1 });
+        res.json(reviews);
+    } catch (err) {
+        console.error('Error fetching reviews:', err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
+// @route   DELETE /api/admin/reviews/:id
+// @desc    Delete a review (moderation)
+router.delete('/reviews/:id', async (req, res) => {
+    try {
+        const review = await Review.findById(req.params.id);
+        if (!review) {
+            return res.status(404).json({ message: 'Review not found' });
+        }
+        await Review.findByIdAndDelete(req.params.id);
+        res.json({ message: 'Review deleted successfully' });
+    } catch (err) {
+        console.error('Error deleting review:', err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
+// @route   GET /api/admin/kyc-pending
+// @desc    Get all providers with submitted KYC documents (pending, verified, rejected)
+router.get('/kyc-pending', async (req, res) => {
+    try {
+        const users = await User.find({
+            'kycDocument.status': { $in: ['pending', 'verified', 'rejected'] }
+        }).select('-password');
+        res.json(users);
+    } catch (err) {
+        console.error('Error fetching KYC records:', err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
+// @route   PUT /api/admin/verify-kyc/:id
+// @desc    Approve or reject a provider's KYC document
+router.put('/verify-kyc/:id', async (req, res) => {
+    try {
+        const { action } = req.body; // 'approve' or 'reject'
+        if (!['approve', 'reject'].includes(action)) {
+            return res.status(400).json({ message: 'Invalid action. Must be approve or reject.' });
+        }
+
+        const user = await User.findById(req.params.id);
+        if (!user) return res.status(404).json({ message: 'Provider not found' });
+
+        if (action === 'approve') {
+            user.kycDocument.status = 'verified';
+            user.isVerified = true;
+        } else {
+            user.kycDocument.status = 'rejected';
+            user.isVerified = false;
+        }
+
+        await user.save();
+        res.json({ message: `KYC submission successfully ${action}d`, user });
+    } catch (err) {
+        console.error('Error verifying KYC:', err.message);
         res.status(500).send('Server Error');
     }
 });

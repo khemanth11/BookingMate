@@ -309,6 +309,7 @@ router.put('/:id/dispute', auth, async (req, res) => {
 
         booking.status = 'disputed';
         booking.disputedAt = new Date();
+        booking.disputeReason = req.body.disputeReason || 'No reason provided';
         await booking.save();
 
         // Notify Consumer
@@ -408,6 +409,7 @@ export async function checkAndReleaseFunds(booking) {
         
         booking.payoutReleased = true;
         booking.status = 'verified'; // Final state
+        booking.commissionEarned = commissionFee;
         booking.completedAt = new Date();
         await booking.save();
         return booking;

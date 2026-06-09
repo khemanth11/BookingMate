@@ -26,30 +26,14 @@ export default function ProviderBookingsScreen() {
     const [otpInputs, setOtpInputs] = useState({});
     const [isSubmittingOtp, setIsSubmittingOtp] = useState({});
 
-    const handleRaiseDispute = async (bookingId) => {
-        Alert.alert(
-            'Raise Escrow Dispute?',
-            'Raise a formal dispute for Admin mediation? Select this only if the consumer refuses to share the OTP.',
-            [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                    text: 'Raise Dispute',
-                    style: 'destructive',
-                    onPress: async () => {
-                        try {
-                            const token = await AsyncStorage.getItem('token');
-                            await axios.put(`${API_URL}/${bookingId}/dispute`, {}, {
-                                headers: { 'x-auth-token': token }
-                            });
-                            Alert.alert('Dispute Raised', 'A dispute has been raised. Platform Admin has been notified to mediate.');
-                            fetchBookings();
-                        } catch (error) {
-                            Alert.alert('Error', error.response?.data?.message || 'Failed to raise dispute.');
-                        }
-                    }
-                }
-            ]
-        );
+    const [disputeModalVisible, setDisputeModalVisible] = useState(false);
+    const [disputeReason, setDisputeReason] = useState('');
+    const [disputingBookingId, setDisputingBookingId] = useState(null);
+
+    const handleRaiseDispute = (bookingId) => {
+        setDisputingBookingId(bookingId);
+        setDisputeReason('');
+        setDisputeModalVisible(true);
     };
 
     const handleVerifyOtp = async (bookingId) => {
@@ -364,6 +348,54 @@ export default function ProviderBookingsScreen() {
                     </CameraView>
                 </View>
             </Modal>
+
+            {/* Dispute Explanation Modal */}
+            <Modal visible={disputeModalVisible} transparent animationType="fade">
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <Text style={styles.modalTitle}>Raise Escrow Dispute ⚠️</Text>
+                        <Text style={styles.modalSub}>
+                            Please describe why you are disputing this transaction (e.g. consumer refused to provide OTP after job completion).
+                        </Text>
+                        
+                        <TextInput
+                            style={styles.disputeInput}
+                            multiline
+                            numberOfLines={4}
+                            placeholder="Reason for dispute..."
+                            placeholderTextColor="#9ca3af"
+                            value={disputeReason}
+                            onChangeText={setDisputeReason}
+                        />
+
+                        <TouchableOpacity 
+                            style={[styles.confirmBtn, !disputeReason.trim() && { opacity: 0.7 }]}
+                            disabled={!disputeReason.trim()}
+                            onPress={async () => {
+                                try {
+                                    const token = await AsyncStorage.getItem('token');
+                                    await axios.put(`${API_URL}/${disputingBookingId}/dispute`, {
+                                        disputeReason: disputeReason.trim()
+                                    }, {
+                                        headers: { 'x-auth-token': token }
+                                    });
+                                    Alert.alert('Dispute Raised', 'A dispute has been raised with your explanation. Admin mediation is requested.');
+                                    setDisputeModalVisible(false);
+                                    fetchBookings();
+                                } catch (error) {
+                                    Alert.alert('Error', error.response?.data?.message || 'Failed to raise dispute.');
+                                }
+                            }}
+                        >
+                            <Text style={styles.confirmBtnText}>Submit Dispute</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity onPress={() => setDisputeModalVisible(false)}>
+                            <Text style={styles.cancelText}>Cancel</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
         </SafeAreaView>
     );
 }
@@ -593,5 +625,69 @@ const styles = StyleSheet.create({
         color: '#b45309',
         fontFamily: 'Inter_700Bold',
         fontSize: 13,
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.6)',
+        justifyContent: 'center',
+        padding: 24,
+    },
+    modalContent: {
+        backgroundColor: '#ffffff',
+        borderRadius: 24,
+        padding: 24,
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.1,
+        shadowRadius: 12,
+        elevation: 8,
+    },
+    modalTitle: {
+        fontSize: 18,
+        fontFamily: 'Inter_800ExtraBold',
+        color: '#0f172a',
+        marginBottom: 8,
+        textAlign: 'center',
+    },
+    modalSub: {
+        fontSize: 13,
+        fontFamily: 'Inter_500Medium',
+        color: '#64748b',
+        textAlign: 'center',
+        marginBottom: 20,
+        lineHeight: 18,
+    },
+    disputeInput: {
+        width: '100%',
+        backgroundColor: '#f8fafc',
+        borderRadius: 12,
+        padding: 12,
+        fontSize: 14,
+        fontFamily: 'Inter_600SemiBold',
+        color: '#0f172a',
+        borderWidth: 1,
+        borderColor: '#cbd5e1',
+        marginBottom: 20,
+        textAlignVertical: 'top',
+        minHeight: 80,
+    },
+    confirmBtn: {
+        backgroundColor: '#0f172a',
+        width: '100%',
+        paddingVertical: 14,
+        borderRadius: 12,
+        alignItems: 'center',
+        marginBottom: 12,
+    },
+    confirmBtnText: {
+        color: '#ffffff',
+        fontFamily: 'Inter_800ExtraBold',
+        fontSize: 14,
+    },
+    cancelText: {
+        color: '#64748b',
+        fontSize: 14,
+        fontFamily: 'Inter_700Bold',
     },
 });

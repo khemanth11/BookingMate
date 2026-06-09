@@ -191,4 +191,53 @@ router.get('/favorites', auth, async (req, res) => {
     }
 });
 
+// @route   PUT /api/auth/bank-details
+// @desc    Update provider bank details
+router.put('/bank-details', auth, async (req, res) => {
+    try {
+        const { accountNumber, ifscCode, accountHolderName, upiId } = req.body;
+        const user = await User.findById(req.user.id);
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
+        user.bankDetails = {
+            accountNumber: accountNumber || '',
+            ifscCode: ifscCode || '',
+            accountHolderName: accountHolderName || '',
+            upiId: upiId || ''
+        };
+        await user.save();
+
+        res.json({ message: 'Bank details updated successfully', bankDetails: user.bankDetails });
+    } catch (err) {
+        console.error('Update bank details error:', err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
+// @route   PUT /api/auth/kyc-document
+// @desc    Upload provider KYC documents
+router.put('/kyc-document', auth, async (req, res) => {
+    try {
+        const { idType, base64Data } = req.body;
+        if (!idType || !base64Data) {
+            return res.status(400).json({ message: 'Missing document type or data' });
+        }
+
+        const user = await User.findById(req.user.id);
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
+        user.kycDocument = {
+            idType,
+            base64Data,
+            status: 'pending'
+        };
+        await user.save();
+
+        res.json({ message: 'KYC document submitted for review', kycDocument: { idType, status: 'pending' } });
+    } catch (err) {
+        console.error('KYC upload error:', err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
 export default router;

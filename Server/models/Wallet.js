@@ -14,7 +14,7 @@ const walletSchema = new mongoose.Schema({
     transactions: [{
         amount: { type: Number, required: true },
         type: { type: String, enum: ['credit', 'debit'], required: true },
-        status: { type: String, enum: ['pending', 'completed'], default: 'completed' },
+        status: { type: String, enum: ['pending', 'completed', 'rejected'], default: 'completed' },
         bookingId: { type: mongoose.Schema.Types.ObjectId, ref: 'Booking' },
         timestamp: { type: Date, default: Date.now }
     }]
