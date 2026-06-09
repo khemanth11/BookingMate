@@ -26,6 +26,10 @@ function App() {
   const [kycStatusFilter, setKycStatusFilter] = useState('all');
   const [payoutStatusFilter, setPayoutStatusFilter] = useState('all');
   const [config, setConfig] = useState({ commissionRate: 10, maintenanceMode: false });
+  const [token, setToken] = useState(localStorage.getItem('adminToken') || null);
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [loginError, setLoginError] = useState('');
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDetailedBooking, setSelectedDetailedBooking] = useState(null);
@@ -71,8 +75,42 @@ function App() {
   };
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    if (token) {
+      axios.defaults.headers.common['x-auth-token'] = token;
+      localStorage.setItem('adminToken', token);
+      fetchData();
+    } else {
+      delete axios.defaults.headers.common['x-auth-token'];
+      localStorage.removeItem('adminToken');
+      setLoading(false);
+    }
+  }, [token]);
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setLoginError('');
+    if (!username || !password) {
+      setLoginError('Please enter email and password.');
+      return;
+    }
+    try {
+      setLoading(true);
+      const res = await axios.post('http://localhost:5000/api/auth/login', {
+        email: username,
+        password: password
+      });
+      const { token: userToken, user: loggedUser } = res.data;
+      if (loggedUser.role !== 'admin') {
+        setLoginError('Access denied: You are not authorized as an admin.');
+        setLoading(false);
+        return;
+      }
+      setToken(userToken);
+    } catch (err) {
+      setLoginError(err.response?.data?.message || 'Invalid email or password.');
+      setLoading(false);
+    }
+  };
 
   const handleVerifyUser = async (userId) => {
     try {
@@ -185,6 +223,74 @@ function App() {
     );
   }
 
+  if (!token) {
+    return (
+      <div className="min-h-screen bg-[#020617] flex items-center justify-center p-4 relative overflow-hidden font-sans">
+        {/* Background glow effects */}
+        <div className="absolute top-[-20%] left-[-20%] w-[60%] h-[60%] rounded-full bg-blue-600/10 blur-[150px] pointer-events-none" />
+        <div className="absolute bottom-[-20%] right-[-20%] w-[60%] h-[60%] rounded-full bg-indigo-600/10 blur-[150px] pointer-events-none" />
+
+        <div className="w-full max-w-md bg-slate-900/60 backdrop-blur-xl border border-slate-800 rounded-3xl p-8 shadow-2xl relative z-10 animate-in fade-in zoom-in-95 duration-300">
+          <div className="flex flex-col items-center gap-3 mb-8 text-center">
+            <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/20">
+              <LayoutDashboard className="text-white" size={32} />
+            </div>
+            <h2 className="text-2xl font-black text-white tracking-tight">EverythingBooking Admin</h2>
+            <p className="text-sm text-slate-400">Log in with your administrator credentials</p>
+          </div>
+
+          <form onSubmit={handleLogin} className="space-y-5">
+            {loginError && (
+              <div className="bg-red-500/10 border border-red-500/25 text-red-400 text-xs p-3.5 rounded-xl font-bold flex items-center gap-2">
+                <XCircle size={16} />
+                <span>{loginError}</span>
+              </div>
+            )}
+
+            <div>
+              <label className="block text-slate-400 text-xs font-bold uppercase tracking-wider mb-2">Email Address</label>
+              <input
+                type="email"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="admin@everythingbooking.com"
+                className="w-full bg-slate-950/40 border border-slate-800 rounded-xl px-4 py-3 text-white outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 transition-all text-sm"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-slate-400 text-xs font-bold uppercase tracking-wider mb-2">Password</label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className="w-full bg-slate-950/40 border border-slate-800 rounded-xl px-4 py-3 text-white outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 transition-all text-sm"
+                required
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-blue-600/50 text-white font-bold py-3.5 rounded-xl transition-all shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2 mt-2"
+            >
+              {loading ? (
+                <RefreshCw className="animate-spin text-white" size={18} />
+              ) : (
+                <>
+                  <ShieldCheck size={18} />
+                  <span>Secure Log In</span>
+                </>
+              )}
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-screen bg-[#0f172a] text-slate-200 overflow-hidden font-sans">
       {/* Sidebar */}
@@ -208,7 +314,10 @@ function App() {
           <SidebarItem id="settings" icon={Settings} label="Settings" />
         </nav>
 
-        <button className="flex items-center gap-3 px-4 py-3 text-slate-500 hover:text-red-400 transition-colors mt-auto">
+        <button 
+          onClick={() => setToken(null)}
+          className="flex items-center gap-3 px-4 py-3 text-slate-500 hover:text-red-400 transition-colors mt-auto w-full text-left"
+        >
           <LogOut size={20} />
           <span className="font-medium">Logout</span>
         </button>

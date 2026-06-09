@@ -7,20 +7,19 @@ import Review from '../models/Review.js';
 import jwt from 'jsonwebtoken';
 import { checkAndReleaseFunds } from './bookings.js';
 import Config from '../models/Config.js';
+import { sendNotification } from '../utils/notifications.js';
 
 const router = express.Router();
 
 // Admin Middleware
 const adminAuth = (req, res, next) => {
     const token = req.header('x-auth-token');
-    if (!token) return res.status(401).json({ message: 'No token' });
+    if (!token) return res.status(401).json({ message: 'No token, authorization denied' });
 
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret-token-key-change-me');
-        if (decoded.user.role !== 'admin' && decoded.user.role !== 'provider') {
-            // For now, allowing 'provider' to see some stats if needed, 
-            // but real admin routes should be restricted.
-            // Adjusting to restrict strictly to 'admin' for sensitive routes.
+        if (decoded.user.role !== 'admin') {
+            return res.status(403).json({ message: 'Access denied: Admin role required' });
         }
         req.user = decoded.user;
         next();
@@ -31,7 +30,7 @@ const adminAuth = (req, res, next) => {
 
 // @route   GET /api/admin/stats
 // @desc    Get global platform statistics
-router.get('/stats', async (req, res) => {
+router.get('/stats', adminAuth, async (req, res) => {
     try {
         const totalUsers = await User.countDocuments();
         const totalListings = await Listing.countDocuments();
@@ -73,7 +72,7 @@ router.get('/stats', async (req, res) => {
 
 // @route   GET /api/admin/users
 // @desc    Get all users
-router.get('/users', async (req, res) => {
+router.get('/users', adminAuth, async (req, res) => {
     try {
         const users = await User.find().select('-password').sort({ createdAt: -1 });
         res.json(users);
@@ -85,7 +84,7 @@ router.get('/users', async (req, res) => {
 
 // @route   PUT /api/admin/verify-user/:id
 // @desc    Toggle user verification status (KYC)
-router.put('/verify-user/:id', async (req, res) => {
+router.put('/verify-user/:id', adminAuth, async (req, res) => {
     try {
         const user = await User.findById(req.params.id);
         if (!user) return res.status(404).json({ message: 'User not found' });
@@ -102,7 +101,7 @@ router.put('/verify-user/:id', async (req, res) => {
 
 // @route   GET /api/admin/listings
 // @desc    Get all listings
-router.get('/listings', async (req, res) => {
+router.get('/listings', adminAuth, async (req, res) => {
     try {
         const listings = await Listing.find().populate('providerId', 'name email');
         res.json(listings);
@@ -114,7 +113,7 @@ router.get('/listings', async (req, res) => {
 
 // @route   DELETE /api/admin/listings/:id
 // @desc    Admin delete any listing
-router.delete('/listings/:id', async (req, res) => {
+router.delete('/listings/:id', adminAuth, async (req, res) => {
     try {
         const listing = await Listing.findById(req.params.id);
         if (!listing) return res.status(404).json({ message: 'Listing not found' });
@@ -129,7 +128,7 @@ router.delete('/listings/:id', async (req, res) => {
 
 // @route   GET /api/admin/bookings
 // @desc    Get all platform bookings for auditing
-router.get('/bookings', async (req, res) => {
+router.get('/bookings', adminAuth, async (req, res) => {
     try {
         const bookings = await Booking.find()
             .populate('userId', 'name email phone')
@@ -145,7 +144,7 @@ router.get('/bookings', async (req, res) => {
 
 // @route   PUT /api/admin/bookings/:id/resolve
 // @desc    Admin override to resolve booking disputes (force complete/cancel)
-router.put('/bookings/:id/resolve', async (req, res) => {
+router.put('/bookings/:id/resolve', adminAuth, async (req, res) => {
     try {
         const { action } = req.body; // 'complete' or 'cancel'
         const booking = await Booking.findById(req.params.id);
@@ -158,12 +157,22 @@ router.put('/bookings/:id/resolve', async (req, res) => {
             booking.completedAt = new Date();
             await booking.save();
             await checkAndReleaseFunds(booking);
+            
+            // Notify parties
+            await sendNotification(booking.providerId, 'Dispute Resolved ✅', `Admin resolved dispute. Payout for booking ${booking._id} has been released.`);
+            await sendNotification(booking.userId, 'Dispute Resolved ⚙️', `Admin resolved dispute. Payout for booking ${booking._id} has been released to provider.`);
+            
             res.json({ message: 'Booking completed and funds released by admin', booking });
         } else if (action === 'cancel') {
             booking.status = 'cancelled';
             booking.paymentStatus = 'refunded';
             booking.cancelledAt = new Date();
             await booking.save();
+            
+            // Notify parties
+            await sendNotification(booking.providerId, 'Dispute Resolved ⚙️', `Admin resolved dispute. Booking ${booking._id} cancelled and consumer refunded.`);
+            await sendNotification(booking.userId, 'Dispute Resolved 💸', `Admin resolved dispute. Payment for booking ${booking._id} has been refunded.`);
+            
             res.json({ message: 'Booking cancelled and payment refunded by admin', booking });
         } else {
             res.status(400).json({ message: 'Invalid action. Must be complete or cancel.' });
@@ -176,7 +185,7 @@ router.put('/bookings/:id/resolve', async (req, res) => {
 
 // @route   GET /api/admin/settings
 // @desc    Get platform configuration settings
-router.get('/settings', async (req, res) => {
+router.get('/settings', adminAuth, async (req, res) => {
     try {
         let config = await Config.findOne({ key: 'global' });
         if (!config) {
@@ -192,7 +201,7 @@ router.get('/settings', async (req, res) => {
 
 // @route   PUT /api/admin/settings
 // @desc    Update platform configuration settings
-router.put('/settings', async (req, res) => {
+router.put('/settings', adminAuth, async (req, res) => {
     try {
         const { commissionRate, maintenanceMode } = req.body;
         let config = await Config.findOne({ key: 'global' });
@@ -212,7 +221,7 @@ router.put('/settings', async (req, res) => {
 
 // @route   GET /api/admin/payouts
 // @desc    Get all withdrawal/payout requests (pending, completed, rejected)
-router.get('/payouts', async (req, res) => {
+router.get('/payouts', adminAuth, async (req, res) => {
     try {
         const wallets = await Wallet.find({
             'transactions.type': 'debit'
@@ -244,7 +253,7 @@ router.get('/payouts', async (req, res) => {
 
 // @route   PUT /api/admin/payouts/:walletId/transaction/:txId/resolve
 // @desc    Approve or Reject a pending payout request
-router.put('/payouts/:walletId/transaction/:txId/resolve', async (req, res) => {
+router.put('/payouts/:walletId/transaction/:txId/resolve', adminAuth, async (req, res) => {
     try {
         const { action } = req.body;
         const { walletId, txId } = req.params;
@@ -269,9 +278,11 @@ router.put('/payouts/:walletId/transaction/:txId/resolve', async (req, res) => {
 
         if (action === 'approve') {
             tx.status = 'completed';
+            await sendNotification(wallet.providerId, 'Payout Successful 💸', `Your withdrawal request of ₹${tx.amount} has been approved and processed.`);
         } else if (action === 'reject') {
             tx.status = 'rejected';
             wallet.balance += tx.amount;
+            await sendNotification(wallet.providerId, 'Payout Rejected ❌', `Your withdrawal request of ₹${tx.amount} was rejected. Funds have been refunded to your wallet.`);
         }
 
         await wallet.save();
@@ -284,7 +295,7 @@ router.put('/payouts/:walletId/transaction/:txId/resolve', async (req, res) => {
 
 // @route   GET /api/admin/reviews
 // @desc    Get all reviews for moderation
-router.get('/reviews', async (req, res) => {
+router.get('/reviews', adminAuth, async (req, res) => {
     try {
         const reviews = await Review.find()
             .populate('reviewerId', 'name email')
@@ -300,7 +311,7 @@ router.get('/reviews', async (req, res) => {
 
 // @route   DELETE /api/admin/reviews/:id
 // @desc    Delete a review (moderation)
-router.delete('/reviews/:id', async (req, res) => {
+router.delete('/reviews/:id', adminAuth, async (req, res) => {
     try {
         const review = await Review.findById(req.params.id);
         if (!review) {
@@ -316,7 +327,7 @@ router.delete('/reviews/:id', async (req, res) => {
 
 // @route   GET /api/admin/kyc-pending
 // @desc    Get all providers with submitted KYC documents (pending, verified, rejected)
-router.get('/kyc-pending', async (req, res) => {
+router.get('/kyc-pending', adminAuth, async (req, res) => {
     try {
         const users = await User.find({
             'kycDocument.status': { $in: ['pending', 'verified', 'rejected'] }
@@ -330,7 +341,7 @@ router.get('/kyc-pending', async (req, res) => {
 
 // @route   PUT /api/admin/verify-kyc/:id
 // @desc    Approve or reject a provider's KYC document
-router.put('/verify-kyc/:id', async (req, res) => {
+router.put('/verify-kyc/:id', adminAuth, async (req, res) => {
     try {
         const { action } = req.body; // 'approve' or 'reject'
         if (!['approve', 'reject'].includes(action)) {
@@ -343,9 +354,11 @@ router.put('/verify-kyc/:id', async (req, res) => {
         if (action === 'approve') {
             user.kycDocument.status = 'verified';
             user.isVerified = true;
+            await sendNotification(user._id, 'Identity Verified ✅', 'Your KYC documents have been verified. Withdrawal requests are now unlocked.');
         } else {
             user.kycDocument.status = 'rejected';
             user.isVerified = false;
+            await sendNotification(user._id, 'KYC Verification Failed ❌', 'Your KYC document submission was rejected. Please re-upload a clear copy in Account Settings.');
         }
 
         await user.save();

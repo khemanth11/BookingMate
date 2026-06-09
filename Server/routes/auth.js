@@ -199,9 +199,16 @@ router.put('/bank-details', auth, async (req, res) => {
         const user = await User.findById(req.user.id);
         if (!user) return res.status(404).json({ message: 'User not found' });
 
+        if (ifscCode) {
+            const ifscRegex = /^[A-Z]{4}0[A-Z0-9]{6}$/i;
+            if (!ifscRegex.test(ifscCode)) {
+                return res.status(400).json({ message: 'Invalid IFSC code format. It must be 11 characters (e.g. SBIN0001234).' });
+            }
+        }
+
         user.bankDetails = {
             accountNumber: accountNumber || '',
-            ifscCode: ifscCode || '',
+            ifscCode: (ifscCode || '').toUpperCase(),
             accountHolderName: accountHolderName || '',
             upiId: upiId || ''
         };
